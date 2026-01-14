@@ -544,7 +544,7 @@ if ($action === 'submit_registration') {
             debug_response("Insertion session", ['session' => $session, 'index' => $index, 'targetface' => $targetface]);
 
             $insert_query = "INSERT INTO Entries (
-                EnTournament, EnCode, EnIocCode, EnName, EnFirstName,
+                EnTournament, EnCode, EnIocCode, EnFirstName, EnName,
                 EnSex, EnDob, EnDivision, EnClass, EnAgeClass,
                 EnCountry, EnCountry2, EnCountry3, EnSubTeam, EnCtrlCode,
                 EnTargetFace, EnStatus, EnAthlete, EnClassified,
