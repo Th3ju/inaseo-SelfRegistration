@@ -75,51 +75,19 @@ if (!$conn) {
 }
 mysqli_set_charset($conn, 'utf8mb4');
 
-// ACTION: get_tournament_name
-if ($action === 'get_tournament_name') {
-    $query = "SELECT ToName FROM Tournament WHERE ToId = ?";
-    $stmt = mysqli_prepare($conn, $query);
-    mysqli_stmt_bind_param($stmt, "i", $tournament_id);
-    mysqli_stmt_execute($stmt);
-    $result = mysqli_stmt_get_result($stmt);
-    
-    if ($row = mysqli_fetch_assoc($result)) {
-        send_success(['name' => $row['ToName']]);
-    } else {
-        send_error("Tournoi introuvable");
-    }
-}
 
 // ACTION: search_license
 if ($action === 'search_license') {
     $license = strtoupper(trim($_POST['license']));
-    $lastname = strtoupper(trim($_POST['lastname']));
+    $lastname = trim($_POST['lastname']);
     
     debug_response("Recherche licence + nom", ['license' => $license, 'lastname' => $lastname]);
-    
-    // D'abord chercher juste la licence pour voir ce qu'on a
-    $debug_query = "SELECT LueCode, LueName, LueFamilyName FROM LookUpEntries WHERE LueCode = ?";
-    $debug_stmt = mysqli_prepare($conn, $debug_query);
-    mysqli_stmt_bind_param($debug_stmt, "s", $license);
-    mysqli_stmt_execute($debug_stmt);
-    $debug_result = mysqli_stmt_get_result($debug_stmt);
-    
-    if ($debug_row = mysqli_fetch_assoc($debug_result)) {
-        debug_response("Licence trouvée dans la base", [
-            'LueCode' => $debug_row['LueCode'],
-            'LueName' => $debug_row['LueName'],
-            'LueFamilyName' => $debug_row['LueFamilyName'],
-            'Recherché' => $lastname
-        ]);
-    } else {
-        send_error("Licence introuvable");
-    }
     
     $query = "SELECT LueCode, LueName, LueFamilyName, LueSex, LueCtrlCode, 
                      LueIocCode, LueCoDescr, LueClassified
               FROM LookUpEntries 
               WHERE LueCode = ? 
-              AND UPPER(TRIM(LueName)) = ?";
+              AND UPPER(TRIM(LueFamilyName)) = UPPER(?)";
     
     $stmt = mysqli_prepare($conn, $query);
     mysqli_stmt_bind_param($stmt, "ss", $license, $lastname);
@@ -153,7 +121,7 @@ if ($action === 'search_license') {
             'classified' => intval($row['LueClassified'])
         ]);
     } else {
-        send_error("Licence et nom de famille ne correspondent pas. Vérifiez l'orthographe exacte.");
+        send_error("Licence et nom de famille ne correspondent pas");
     }
 }
 
@@ -501,7 +469,7 @@ if ($action === 'submit_registration') {
             
             debug_response("Qualification créée", ['QuId' => $entry_id, 'QuSession' => $session]);
             
-            // Insertion de l'email dans ExtraData
+            // AJOUT EMAIL - Insertion de l'email dans ExtraData
             if (!empty($data['email'])) {
                 $email_query = "INSERT INTO ExtraData (EdId, EdType, EdEvent, EdEmail) 
                                VALUES (?, 'E', '', ?)
@@ -527,6 +495,21 @@ if ($action === 'submit_registration') {
     } catch (Exception $e) {
         mysqli_rollback($conn);
         send_error("Erreur inscription: " . $e->getMessage());
+    }
+}
+
+// ACTION: get_tournament_name
+if ($action === 'get_tournament_name') {
+    $query = "SELECT ToName FROM Tournament WHERE ToId = ?";
+    $stmt = mysqli_prepare($conn, $query);
+    mysqli_stmt_bind_param($stmt, "i", $tournament_id);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+    
+    if ($row = mysqli_fetch_assoc($result)) {
+        send_success(['name' => $row['ToName']]);
+    } else {
+        send_error("Tournoi introuvable");
     }
 }
 
