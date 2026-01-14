@@ -188,6 +188,7 @@ function searchLicense(license, lastname) {
                 dob: data.data.dob,
                 ioccode: data.data.ioccode,
                 club: data.data.club,
+                country_code: data.data.country_code,
                 classified: data.data.classified
             };
             displayArcherInfo();
