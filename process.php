@@ -497,11 +497,19 @@ if ($action === 'submit_registration') {
 
         // Si le club n'existe pas dans le tournoi, créer une entrée
         if (!$country_row) {
-            $insert_country_query = "INSERT INTO Countries (CoTournament, CoCode, CoName, CoNameComplete, CoIocCode) 
-                                    VALUES (?, ?, ?, ?, ?)";
+            $insert_country_query = "INSERT INTO Countries (
+                CoTournament, CoCode, CoName, CoNameComplete, CoIocCode, 
+                CoSubCountry, CoContAssoc, CoContFed
+            ) VALUES (?, ?, ?, ?, ?, '', '', '')";
             $insert_country_stmt = mysqli_prepare($conn, $insert_country_query);
             $ioc_code = $data['ioccode'];
-            mysqli_stmt_bind_param($insert_country_stmt, "issss", $tournament_id, $club_name, $club_name, $club_name, $ioc_code);
+            mysqli_stmt_bind_param($insert_country_stmt, "issss", 
+                $tournament_id, 
+                $club_name, 
+                $club_name, 
+                $club_name, 
+                $ioc_code
+            );
             
             if (!mysqli_stmt_execute($insert_country_stmt)) {
                 throw new Exception("Erreur création club: " . mysqli_stmt_error($insert_country_stmt));
