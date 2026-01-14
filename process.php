@@ -93,15 +93,33 @@ if ($action === 'get_tournament_name') {
 // ACTION: search_license
 if ($action === 'search_license') {
     $license = strtoupper(trim($_POST['license']));
-    $lastname = trim($_POST['lastname']);
+    $lastname = strtoupper(trim($_POST['lastname']));
     
     debug_response("Recherche licence + nom", ['license' => $license, 'lastname' => $lastname]);
+    
+    // D'abord chercher juste la licence pour voir ce qu'on a
+    $debug_query = "SELECT LueCode, LueName, LueFamilyName FROM LookUpEntries WHERE LueCode = ?";
+    $debug_stmt = mysqli_prepare($conn, $debug_query);
+    mysqli_stmt_bind_param($debug_stmt, "s", $license);
+    mysqli_stmt_execute($debug_stmt);
+    $debug_result = mysqli_stmt_get_result($debug_stmt);
+    
+    if ($debug_row = mysqli_fetch_assoc($debug_result)) {
+        debug_response("Licence trouvée dans la base", [
+            'LueCode' => $debug_row['LueCode'],
+            'LueName' => $debug_row['LueName'],
+            'LueFamilyName' => $debug_row['LueFamilyName'],
+            'Recherché' => $lastname
+        ]);
+    } else {
+        send_error("Licence introuvable");
+    }
     
     $query = "SELECT LueCode, LueName, LueFamilyName, LueSex, LueCtrlCode, 
                      LueIocCode, LueCoDescr, LueClassified
               FROM LookUpEntries 
               WHERE LueCode = ? 
-              AND UPPER(TRIM(LueName)) = UPPER(?)";
+              AND UPPER(TRIM(LueName)) = ?";
     
     $stmt = mysqli_prepare($conn, $query);
     mysqli_stmt_bind_param($stmt, "ss", $license, $lastname);
@@ -126,8 +144,8 @@ if ($action === 'search_license') {
         
         send_success([
             'license' => $row['LueCode'],
-            'name' => $row['LueName'],              // Nom de famille
-            'firstname' => $row['LueFamilyName'],    // Prénom
+            'name' => $row['LueName'],
+            'firstname' => $row['LueFamilyName'],
             'sex' => intval($row['LueSex']),
             'dob' => $row['LueCtrlCode'],
             'ioccode' => $row['LueIocCode'],
@@ -135,9 +153,10 @@ if ($action === 'search_license') {
             'classified' => intval($row['LueClassified'])
         ]);
     } else {
-        send_error("Licence et nom de famille ne correspondent pas");
+        send_error("Licence et nom de famille ne correspondent pas. Vérifiez l'orthographe exacte.");
     }
 }
+
 
 
 // ACTION: get_divisions
