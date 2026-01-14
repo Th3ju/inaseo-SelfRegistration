@@ -139,18 +139,21 @@
     </div>
 
 <script>
-    // Récupérer le token depuis l'URL
+    // Récupérer le tournament ID et le token depuis l'URL
     const urlParams = new URLSearchParams(window.location.search);
+    const tournamentIdFromUrl = urlParams.get('tournament');
     const token = urlParams.get('token');
     
-    if (!token) {
-        document.body.innerHTML = '<div style="text-align: center; padding: 50px; font-family: Arial;"><h1>Erreur</h1><p>Aucun token d\'accès fourni.</p><p>Veuillez utiliser le lien fourni par l\'organisateur.</p></div>';
-        throw new Error('Token manquant');
+    if (!tournamentIdFromUrl || !token) {
+        document.body.innerHTML = '<div style="text-align: center; padding: 50px; font-family: Arial;"><h1>Erreur</h1><p>Paramètres manquants dans l\'URL.</p><p>Format attendu: ?tournament=123&token=VOTRE_TOKEN</p></div>';
+        throw new Error('Paramètres manquants');
     }
     
-    // Le TOURNAMENT_ID sera récupéré depuis le serveur via le token
-    let TOURNAMENT_ID = null;
+    let TOURNAMENT_ID = parseInt(tournamentIdFromUrl);
+    const ACCESS_TOKEN = token;
 </script>
+<script src="js/script.js"></script>
+
 
 
     <script src="js/script.js"></script>

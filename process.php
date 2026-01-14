@@ -716,6 +716,51 @@ if ($action === 'get_tournament_name') {
     }
 }
 
+// ACTION: validate_token
+if ($action === 'validate_token') {
+    $token = isset($_POST['token']) ? trim($_POST['token']) : '';
+    $tournament_id = isset($_POST['tournament_id']) ? intval($_POST['tournament_id']) : 0;
+    
+    if (empty($token)) {
+        send_error("Token manquant");
+    }
+    
+    if ($tournament_id <= 0) {
+        send_error("ID de tournoi invalide");
+    }
+    
+    // Charger la config pour ce tournoi
+    $config = load_config($tournament_id);
+    
+    if (!$config || !$config['tournament']) {
+        send_error("Aucune configuration trouvée pour ce tournoi");
+    }
+    
+    // Vérifier que le token correspond
+    if ($config['tournament']['token'] !== $token) {
+        send_error("Token invalide pour ce tournoi");
+    }
+    
+    // Vérifier que le tournoi existe dans la base
+    $check_query = "SELECT ToId, ToName FROM Tournament WHERE ToId = ?";
+    $check_stmt = mysqli_prepare($conn, $check_query);
+    mysqli_stmt_bind_param($check_stmt, "i", $tournament_id);
+    mysqli_stmt_execute($check_stmt);
+    $check_result = mysqli_stmt_get_result($check_stmt);
+    
+    if ($tournament_row = mysqli_fetch_assoc($check_result)) {
+        send_success([
+            'tournament_id' => $tournament_id,
+            'tournament_name' => $tournament_row['ToName'],
+            'valid' => true
+        ]);
+    } else {
+        send_error("Le tournoi (ID: $tournament_id) n'existe pas dans la base de données");
+    }
+}
+
+
+
 mysqli_close($conn);
 send_error("Action inconnue", ['action' => $action]);
 ?>

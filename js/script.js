@@ -1,10 +1,41 @@
 let currentStep = 1;
 let registrationData = {};
 
-// Charger le nom du tournoi au chargement de la page
+// Valider le token au chargement de la page
 window.addEventListener('DOMContentLoaded', function() {
-    loadTournamentName();
+    validateToken();
 });
+
+function validateToken() {
+    if (!TOURNAMENT_ID || !ACCESS_TOKEN) {
+        document.body.innerHTML = '<div style="text-align: center; padding: 50px; font-family: Arial;"><h1>Accès refusé</h1><p>Paramètres manquants.</p></div>';
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('action', 'validate_token');
+    formData.append('tournament_id', TOURNAMENT_ID);
+    formData.append('token', ACCESS_TOKEN);
+    
+    fetch('process.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('tournament-name').textContent = data.data.tournament_name;
+        } else {
+            document.body.innerHTML = '<div style="text-align: center; padding: 50px; font-family: Arial;"><h1>Accès refusé</h1><p>' + (data.error || 'Token invalide') + '</p></div>';
+        }
+    })
+    .catch(error => {
+        document.body.innerHTML = '<div style="text-align: center; padding: 50px; font-family: Arial;"><h1>Erreur</h1><p>Impossible de valider l\'accès.</p></div>';
+    });
+}
+
+
+
 
 function loadTournamentName() {
     const formData = new FormData();
