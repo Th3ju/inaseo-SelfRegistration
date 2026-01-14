@@ -126,8 +126,8 @@ if ($action === 'search_license') {
         
         send_success([
             'license' => $row['LueCode'],
-            'name' => $row['LueName'],
-            'firstname' => $row['LueFamilyName'],
+            'name' => $row['LueName'],              // Nom de famille
+            'firstname' => $row['LueFamilyName'],    // Prénom
             'sex' => intval($row['LueSex']),
             'dob' => $row['LueCtrlCode'],
             'ioccode' => $row['LueIocCode'],
@@ -138,6 +138,7 @@ if ($action === 'search_license') {
         send_error("Licence et nom de famille ne correspondent pas");
     }
 }
+
 
 // ACTION: get_divisions
 if ($action === 'get_divisions') {
