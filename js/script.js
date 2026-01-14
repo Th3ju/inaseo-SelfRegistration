@@ -58,6 +58,7 @@ function nextStep(step) {
             showError('Veuillez saisir votre numéro de licence');
             return;
         }
+
         if (!lastname) {
             showError('Veuillez saisir votre nom de famille');
             return;
@@ -107,7 +108,6 @@ function nextStep(step) {
         }
 
         registrationData.sessions = Array.from(checkboxes).map(cb => parseInt(cb.value));
-
         // Charger les blasons pour chaque départ
         loadTargetFacesForSessions();
     } else if (step === 5) {
@@ -179,6 +179,7 @@ function searchLicense(license, lastname) {
     .then(response => response.json())
     .then(data => {
         hideLoading();
+        console.log('Réponse search_license:', data);
         if (data.success) {
             registrationData = {
                 license: data.data.license,
@@ -188,9 +189,10 @@ function searchLicense(license, lastname) {
                 dob: data.data.dob,
                 ioccode: data.data.ioccode,
                 club: data.data.club,
-                country_code: data.data.country_code,
+                country_code: data.data.country_code,  // AJOUT ICI
                 classified: data.data.classified
             };
+            console.log('registrationData:', registrationData);
             displayArcherInfo();
             loadDivisions();
         } else {
@@ -227,7 +229,7 @@ function loadDivisions() {
         hideLoading();
         if (data.success) {
             const select = document.getElementById('division');
-            select.innerHTML = '';
+            select.innerHTML = '<option value="">-- Choisir une division --</option>';
             data.data.forEach(div => {
                 const option = document.createElement('option');
                 option.value = div.DivId;
@@ -264,7 +266,7 @@ function loadClasses() {
         hideLoading();
         if (data.success) {
             const select = document.getElementById('ageclass');
-            select.innerHTML = '';
+            select.innerHTML = '<option value="">-- Choisir une catégorie --</option>';
             data.data.forEach(cl => {
                 const option = document.createElement('option');
                 option.value = cl.ClId;
@@ -380,18 +382,9 @@ function displayTargetFacesForSessions(targetfaces) {
     registrationData.sessions.forEach(session => {
         const sessionDiv = document.createElement('div');
         sessionDiv.className = 'targetface-session';
-        sessionDiv.style.marginBottom = '20px';
-        sessionDiv.style.padding = '15px';
-        sessionDiv.style.border = '1px solid #ddd';
-        sessionDiv.style.borderRadius = '8px';
-        sessionDiv.style.backgroundColor = '#f9f9f9';
 
         const label = document.createElement('label');
         label.textContent = `Départ ${session}`;
-        label.style.display = 'block';
-        label.style.fontWeight = 'bold';
-        label.style.marginBottom = '10px';
-        label.style.fontSize = '16px';
 
         const select = document.createElement('select');
         select.id = `targetface-${session}`;
@@ -426,9 +419,10 @@ function showSummary() {
         return `<li>Départ ${s} - ${tfName}</li>`;
     }).join('');
 
-    const summaryHTML = `
+    document.getElementById('summary-content').innerHTML = `
         <p><strong>Licence :</strong> ${registrationData.license}</p>
-        <p><strong>Nom :</strong> ${registrationData.firstname} ${registrationData.name}</p>
+        <p><strong>Nom :</strong> ${registrationData.name}</p>
+        <p><strong>Prénom :</strong> ${registrationData.firstname}</p>
         <p><strong>Email :</strong> ${registrationData.email}</p>
         <p><strong>Club :</strong> ${registrationData.club}</p>
         <p><strong>Division :</strong> ${registrationData.division}</p>
@@ -436,12 +430,12 @@ function showSummary() {
         <p><strong>Départs et blasons :</strong></p>
         <ul>${sessionsText}</ul>
     `;
-
-    document.getElementById('summary-content').innerHTML = summaryHTML;
 }
 
 function submitRegistration() {
     showLoading();
+    
+    console.log('Données envoyées:', registrationData);  // Pour déboguer
 
     const formData = new FormData();
     formData.append('action', 'submit_registration');
@@ -456,13 +450,13 @@ function submitRegistration() {
     .then(data => {
         hideLoading();
         if (data.success) {
-            showSuccess('Inscription réussie ! Vous allez recevoir un email de confirmation.');
+            showSuccess('Inscription réussie ! Vous allez recevoir une confirmation par email.');
             // Réinitialiser le formulaire après 3 secondes
             setTimeout(() => {
                 location.reload();
             }, 3000);
         } else {
-            showError(data.error || 'Erreur lors de l\'inscription');
+            showError(data.error || "Erreur lors de l'inscription");
         }
     })
     .catch(error => {
