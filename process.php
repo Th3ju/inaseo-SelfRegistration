@@ -469,20 +469,20 @@ if ($action === 'submit_registration') {
             
             debug_response("Qualification créée", ['QuId' => $entry_id, 'QuSession' => $session]);
             
-            // AJOUT EMAIL - Insertion de l'email dans ExtraData
-            if (!empty($data['email'])) {
-                $email_query = "INSERT INTO ExtraData (EdId, EdType, EdEvent, EdEmail) 
-                               VALUES (?, 'E', '', ?)
-                               ON DUPLICATE KEY UPDATE EdEmail = ?";
-                $email_stmt = mysqli_prepare($conn, $email_query);
-                mysqli_stmt_bind_param($email_stmt, "iss", $entry_id, $data['email'], $data['email']);
-                
-                if (!mysqli_stmt_execute($email_stmt)) {
-                    debug_response("Avertissement email", mysqli_stmt_error($email_stmt));
-                } else {
-                    debug_response("Email enregistré", ['EnId' => $entry_id, 'Email' => $data['email']]);
-                }
-            }
+// AJOUT EMAIL - Insertion de l'email dans ExtraData
+if (!empty($data['email'])) {
+    $email_query = "INSERT INTO ExtraData (EdId, EdType, EdEvent, EdEmail, EdExtra) 
+                   VALUES (?, 'E', '', ?, '')
+                   ON DUPLICATE KEY UPDATE EdEmail = ?";
+    $email_stmt = mysqli_prepare($conn, $email_query);
+    mysqli_stmt_bind_param($email_stmt, "iss", $entry_id, $data['email'], $data['email']);
+    
+    if (!mysqli_stmt_execute($email_stmt)) {
+        debug_response("Avertissement email", mysqli_stmt_error($email_stmt));
+    } else {
+        debug_response("Email enregistré", ['EnId' => $entry_id, 'Email' => $data['email']]);
+    }
+}
         }
         
         mysqli_commit($conn);
