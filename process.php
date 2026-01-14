@@ -224,7 +224,7 @@ if ($action === 'search_license') {
     debug_response("Recherche licence + nom", ['license' => $license, 'lastname' => $lastname]);
 
     $query = "SELECT LueCode, LueName, LueFamilyName, LueSex, LueCtrlCode,
-              LueIocCode, LueCoDescr, LueClassified
+              LueIocCode, LueCoDescr, LueClassified, LueCountry
               FROM LookUpEntries
               WHERE LueCode = ?
               AND UPPER(TRIM(LueFamilyName)) = UPPER(?)";
@@ -258,6 +258,7 @@ if ($action === 'search_license') {
             'dob' => $row['LueCtrlCode'],
             'ioccode' => $row['LueIocCode'],
             'club' => $row['LueCoDescr'],
+            'country_code' => $row['LueCountry'],     // Code du club
             'classified' => intval($row['LueClassified'])
         ]);
     } else {
@@ -485,12 +486,14 @@ if ($action === 'submit_registration') {
     try {
         // Récupérer le CoId correspondant au club de l'archer
         $club_name = $data['club'];
+        $club_code = $data['country_code'];  // Code du club depuis LueCountry
+        
         $country_query = "SELECT CoId FROM Countries 
                          WHERE CoTournament = ? 
-                         AND (CoCode = ? OR CoName = ?)
+                         AND CoCode = ?
                          LIMIT 1";
         $country_stmt = mysqli_prepare($conn, $country_query);
-        mysqli_stmt_bind_param($country_stmt, "iss", $tournament_id, $club_name, $club_name);
+        mysqli_stmt_bind_param($country_stmt, "is", $tournament_id, $club_code);
         mysqli_stmt_execute($country_stmt);
         $country_result = mysqli_stmt_get_result($country_stmt);
         $country_row = mysqli_fetch_assoc($country_result);
@@ -505,9 +508,9 @@ if ($action === 'submit_registration') {
             $ioc_code = $data['ioccode'];
             mysqli_stmt_bind_param($insert_country_stmt, "issss", 
                 $tournament_id, 
-                $club_name, 
-                $club_name, 
-                $club_name, 
+                $club_code,      // Code depuis LueCountry
+                $club_name,      // Nom complet
+                $club_name,      // Nom complet
                 $ioc_code
             );
             
@@ -516,7 +519,7 @@ if ($action === 'submit_registration') {
             }
             
             $country_id = mysqli_insert_id($conn);
-            debug_response("Nouveau club créé", ['CoId' => $country_id, 'CoName' => $club_name]);
+            debug_response("Nouveau club créé", ['CoId' => $country_id, 'CoCode' => $club_code, 'CoName' => $club_name]);
         } else {
             $country_id = $country_row['CoId'];
         }
