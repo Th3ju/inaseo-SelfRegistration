@@ -138,9 +138,18 @@
         </div>
     </div>
 
-    <script>
-        const TOURNAMENT_ID = 124; // À configurer selon votre tournoi
-    </script>
+<script>
+    // Récupérer l'ID du tournoi depuis l'URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const tournamentIdFromUrl = urlParams.get('tournament');
+    
+    if (!tournamentIdFromUrl) {
+        alert('Erreur: Aucun ID de tournoi spécifié dans l\'URL.\nFormat attendu: ?tournament=123');
+    }
+    
+    const TOURNAMENT_ID = tournamentIdFromUrl ? parseInt(tournamentIdFromUrl) : 124;
+</script>
+
     <script src="js/script.js"></script>
 </body>
 </html>
