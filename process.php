@@ -31,7 +31,7 @@ function send_success($data = [], $message = '') {
 }
 
 // Fonction d'envoi de mail
-function send_registration_email($user_email, $admin_email, $user_data, $tournament_name) {
+function send_registration_email($user_email, $admin_email, $user_data, $tournament_name, $from_email = 'noreply@ianseo.net') {
     $license = htmlspecialchars($user_data['license']);
     $name = htmlspecialchars($user_data['name']);
     $firstname = htmlspecialchars($user_data['firstname']);
@@ -84,7 +84,7 @@ function send_registration_email($user_email, $admin_email, $user_data, $tournam
     // Headers pour l'email HTML
     $headers_user = "MIME-Version: 1.0\r\n";
     $headers_user .= "Content-type: text/html; charset=UTF-8\r\n";
-    $headers_user .= "From: noreply@ianseo.net\r\n";
+    $headers_user .= "From: " . $from_email . "\r\n";
     
     // Envoi à l'utilisateur
     $sent_user = mail($user_email, $subject_user, $message_user, $headers_user);
@@ -127,7 +127,7 @@ function send_registration_email($user_email, $admin_email, $user_data, $tournam
     
     $headers_admin = "MIME-Version: 1.0\r\n";
     $headers_admin .= "Content-type: text/html; charset=UTF-8\r\n";
-    $headers_admin .= "From: noreply@ianseo.net\r\n";
+    $headers_admin .= "From: " . $from_email . "\r\n";
     
     // Envoi à l'administrateur
     $sent_admin = mail($admin_email, $subject_admin, $message_admin, $headers_admin);
@@ -139,11 +139,16 @@ function send_registration_email($user_email, $admin_email, $user_data, $tournam
 }
 
 // Fonction pour charger les configurations du fichier config.txt
-function load_config($tournament_id) {
+function load_config($tournament_id = null) {
     $config_file = __DIR__ . '/config.txt';
     if (!file_exists($config_file)) {
         return null;
     }
+    
+    $config = [
+        'mail_from' => 'noreply@ianseo.net', // Valeur par défaut
+        'tournament' => null
+    ];
     
     $lines = file($config_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
     foreach ($lines as $line) {
@@ -152,17 +157,29 @@ function load_config($tournament_id) {
             continue;
         }
         
-        $parts = explode('|', $line);
-        if (count($parts) >= 3 && intval($parts[0]) === $tournament_id) {
-            return [
-                'tournament_id' => intval($parts[0]),
-                'token' => $parts[1],
-                'admin_email' => $parts[2]
-            ];
+        // Ligne de configuration globale (format: key=value)
+        if (strpos($line, '=') !== false) {
+            list($key, $value) = explode('=', $line, 2);
+            $key = trim($key);
+            $value = trim($value);
+            if ($key === 'mail_from') {
+                $config['mail_from'] = $value;
+            }
+        }
+        // Ligne de configuration tournoi (format: ID|TOKEN|EMAIL)
+        else if (strpos($line, '|') !== false && $tournament_id !== null) {
+            $parts = explode('|', $line);
+            if (count($parts) >= 3 && intval($parts[0]) === $tournament_id) {
+                $config['tournament'] = [
+                    'tournament_id' => intval($parts[0]),
+                    'token' => $parts[1],
+                    'admin_email' => $parts[2]
+                ];
+            }
         }
     }
     
-    return null;
+    return $config;
 }
 
 // Chemin IANSEO
@@ -611,19 +628,21 @@ if ($action === 'submit_registration') {
                 $tournament_name = $name_row['ToName'];
             }
             
-            // Charger la config pour récupérer l'email admin
+            // Charger la config pour récupérer l'email admin et l'adresse from
             $config = load_config($tournament_id);
-            if ($config && !empty($config['admin_email'])) {
+            if ($config && $config['tournament'] && !empty($config['tournament']['admin_email'])) {
                 debug_response("Envoi emails", [
                     'user_email' => $data['email'],
-                    'admin_email' => $config['admin_email']
+                    'admin_email' => $config['tournament']['admin_email'],
+                    'from_email' => $config['mail_from']
                 ]);
                 
                 $email_result = send_registration_email(
                     $data['email'],
-                    $config['admin_email'],
+                    $config['tournament']['admin_email'],
                     $data,
-                    $tournament_name
+                    $tournament_name,
+                    $config['mail_from']
                 );
                 
                 $email_status = $email_result;

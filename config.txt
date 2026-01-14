@@ -3,5 +3,5 @@
 # Exemple: 124|MONTOKENSECRET
 
 # Ajoutez vos configurations ci-dessous (décommentez et modifiez):
-124|MONTOKENSECRET|julien@famille-garnier.com
+124|MONTOKENSECRET
 
