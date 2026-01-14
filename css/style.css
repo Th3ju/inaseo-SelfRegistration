@@ -31,6 +31,13 @@ h2 {
     color: #667eea;
     margin-bottom: 20px;
     font-size: 24px;
+    text-align: center;
+}
+
+h3 {
+    color: #333;
+    margin-bottom: 20px;
+    font-size: 20px;
 }
 
 /* Barre de progression */
@@ -57,6 +64,8 @@ h2 {
     text-align: center;
     position: relative;
     z-index: 1;
+    font-size: 12px;
+    color: #999;
 }
 
 .progress-step::before {
@@ -77,11 +86,6 @@ h2 {
     background: #667eea;
     color: white;
     transform: scale(1.1);
-}
-
-.progress-step {
-    font-size: 12px;
-    color: #999;
 }
 
 .progress-step.active {
@@ -169,6 +173,23 @@ button {
     background: #d0d0d0;
 }
 
+.btn-success {
+    background: #28a745;
+    color: white;
+}
+
+.btn-success:hover {
+    background: #218838;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+}
+
+.button-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 25px;
+}
+
 /* Boîtes d'information */
 .info-box {
     background: #f8f9fa;
@@ -185,6 +206,33 @@ button {
 
 .info-box p:last-child {
     margin-bottom: 0;
+}
+
+.info-display {
+    background: #f8f9fa;
+    border-left: 4px solid #667eea;
+    padding: 20px;
+    margin-bottom: 25px;
+    border-radius: 8px;
+}
+
+.info-row {
+    display: flex;
+    margin-bottom: 10px;
+}
+
+.info-row:last-child {
+    margin-bottom: 0;
+}
+
+.info-label {
+    font-weight: 600;
+    color: #555;
+    min-width: 180px;
+}
+
+.info-value {
+    color: #333;
 }
 
 .info-text {
@@ -225,15 +273,26 @@ button {
     font-weight: normal;
 }
 
-/* Messages d'erreur */
-.error-message {
-    background: #fee;
-    border-left: 4px solid #f44;
-    color: #c33;
+/* Messages */
+.message {
     padding: 15px;
     margin-bottom: 20px;
     border-radius: 8px;
+    display: none;
+}
+
+.message.error {
+    background: #fee;
+    border-left: 4px solid #f44;
+    color: #c33;
     animation: shake 0.5s ease;
+}
+
+.message.success {
+    background: #efe;
+    border-left: 4px solid #4f4;
+    color: #3a3;
+    animation: fadeIn 0.5s ease;
 }
 
 @keyframes shake {
@@ -242,32 +301,15 @@ button {
     75% { transform: translateX(10px); }
 }
 
-.error {
-    color: #f44;
-    font-weight: bold;
-}
-
-/* Messages de succès */
-.success-message {
-    background: #efe;
-    border-left: 4px solid #4f4;
-    color: #3a3;
-    padding: 15px;
-    margin-bottom: 20px;
-    border-radius: 8px;
-    animation: fadeIn 0.5s ease;
-}
-
 /* Loader */
-.loading {
+.loading-overlay {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
     background: rgba(0,0,0,0.7);
-    display: flex;
-    flex-direction: column;
+    display: none;
     justify-content: center;
     align-items: center;
     z-index: 9999;
@@ -285,12 +327,6 @@ button {
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
-}
-
-.loading p {
-    color: white;
-    margin-top: 20px;
-    font-size: 18px;
 }
 
 /* Blasons par départ */
@@ -314,95 +350,7 @@ button {
     width: 100%;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-    .container {
-        padding: 20px;
-    }
-    
-    h1 {
-        font-size: 24px;
-    }
-    
-    .progress-bar {
-        flex-wrap: wrap;
-    }
-    
-    .progress-step {
-        font-size: 10px;
-        flex-basis: 33.33%;
-        margin-bottom: 20px;
-    }
-    
-    button {
-        width: 100%;
-        margin-bottom: 10px;
-    }
-
-/* Classes manquantes */
-.message {
-    padding: 15px;
-    margin-bottom: 20px;
-    border-radius: 8px;
-    display: none;
-}
-
-.message.error {
-    background: #fee;
-    border-left: 4px solid #f44;
-    color: #c33;
-}
-
-.message.success {
-    background: #efe;
-    border-left: 4px solid #4f4;
-    color: #3a3;
-}
-
-.info-display {
-    background: #f8f9fa;
-    border-left: 4px solid #667eea;
-    padding: 20px;
-    margin-bottom: 25px;
-    border-radius: 8px;
-}
-
-.info-row {
-    display: flex;
-    margin-bottom: 10px;
-}
-
-.info-row:last-child {
-    margin-bottom: 0;
-}
-
-.info-label {
-    font-weight: 600;
-    color: #555;
-    min-width: 150px;
-}
-
-.info-value {
-    color: #333;
-}
-
-.button-group {
-    display: flex;
-    gap: 10px;
-    margin-top: 25px;
-}
-
-.btn-success {
-    background: #28a745;
-    color: white;
-}
-
-.btn-success:hover {
-    background: #218838;
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
-}
-
+/* Récapitulatif */
 .summary-box {
     background: #f8f9fa;
     padding: 20px;
@@ -425,20 +373,32 @@ button {
     color: #555;
 }
 
-.loading-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
-    display: none;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
+/* Responsive */
+@media (max-width: 768px) {
+    .container {
+        padding: 20px;
+    }
+
+    h1 {
+        font-size: 24px;
+    }
+
+    .progress-bar {
+        flex-wrap: wrap;
+    }
+
+    .progress-step {
+        font-size: 10px;
+        flex-basis: 33.33%;
+        margin-bottom: 20px;
+    }
+
+    button {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    
+    .info-label {
+        min-width: 120px;
+    }
 }
-
-
-
-}
-
