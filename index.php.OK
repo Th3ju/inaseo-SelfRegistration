@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inscription Tournoi</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 40px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 32px;
+        }
+
+        h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        .progress-bar {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .progress-bar::before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #e0e0e0;
+            z-index: 0;
+        }
+
+        .progress-step {
+            flex: 1;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+            font-size: 11px;
+            color: #999;
+        }
+
+        .progress-step::before {
+            content: attr(data-step);
+            display: block;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #e0e0e0;
+            color: #999;
+            line-height: 40px;
+            margin: 0 auto 10px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .progress-step.active::before {
+            background: #667eea;
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .progress-step.active {
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .form-step {
+            display: none;
+        }
+
+        .form-step.active {
+            display: block;
+            animation: fadeIn 0.4s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        button {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #555;
+        }
+
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+
+        .info-box {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-radius: 8px;
+        }
+
+        .info-box p {
+            margin-bottom: 10px;
+            color: #555;
+        }
+
+        .info-box p:last-child {
+            margin-bottom: 0;
+        }
+
+        .info-text {
+            color: #666;
+            margin-bottom: 20px;
+            font-style: italic;
+        }
+
+        .checkbox-item {
+            margin-bottom: 15px;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .checkbox-item:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-right: 15px;
+            cursor: pointer;
+            accent-color: #667eea;
+        }
+
+        .checkbox-item label {
+            cursor: pointer;
+            flex: 1;
+            margin: 0;
+            font-weight: normal;
+        }
+
+        .error-message {
+            background: #fee;
+            border-left: 4px solid #f44;
+            color: #c33;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+
+        .error {
+            color: #f44;
+            font-weight: bold;
+        }
+
+        .success-message {
+            background: #efe;
+            border-left: 4px solid #4f4;
+            color: #3a3;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading p {
+            color: white;
+            margin-top: 20px;
+            font-size: 18px;
+        }
+
+        .targetface-session {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }
+
+        .targetface-session label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 16px;
+            color: #667eea;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+            
+            .progress-step {
+                font-size: 9px;
+            }
+            
+            button {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Inscription au Tournoi</h1>
+        
+        <div class="progress-bar">
+            <div class="progress-step active" data-step="1">Licence</div>
+            <div class="progress-step" data-step="2">Division</div>
+            <div class="progress-step" data-step="3">Catégorie</div>
+            <div class="progress-step" data-step="4">Départs</div>
+            <div class="progress-step" data-step="5">Blasons</div>
+            <div class="progress-step" data-step="6">Validation</div>
+        </div>
+
+        <div id="error-message" class="error-message" style="display:none;"></div>
+        <div id="success-message" class="success-message" style="display:none;"></div>
+        <div id="loading" class="loading" style="display:none;">
+            <div class="spinner"></div>
+            <p>Chargement...</p>
+        </div>
+
+        <form id="registration-form">
+            
+            <div id="step-1" class="form-step active">
+                <h2>1. Recherche de licence</h2>
+                <div class="form-group">
+                    <label for="license">Numéro de licence FFTA</label>
+                    <input type="text" id="license" class="form-control" placeholder="Ex: 123456A" required>
+                </div>
+                <button type="button" class="btn-primary" onclick="nextStep(1)">Suivant</button>
+            </div>
+
+            <div id="step-2" class="form-step">
+                <h2>2. Vos informations</h2>
+                <div class="info-box">
+                    <p><strong>Nom :</strong> <span id="info-name"></span></p>
+                    <p><strong>Prénom :</strong> <span id="info-firstname"></span></p>
+                    <p><strong>Date de naissance :</strong> <span id="info-dob"></span></p>
+                    <p><strong>Sexe :</strong> <span id="info-sex"></span></p>
+                    <p><strong>Club :</strong> <span id="info-club"></span></p>
+                </div>
+                <div class="form-group">
+                    <label for="division">Division *</label>
+                    <select id="division" class="form-control" required>
+                        <option value="">-- Choisir une division --</option>
+                    </select>
+                </div>
+                <button type="button" class="btn-secondary" onclick="prevStep(2)">Retour</button>
+                <button type="button" class="btn-primary" onclick="nextStep(2)">Suivant</button>
+            </div>
+
+            <div id="step-3" class="form-step">
+                <h2>3. Catégorie</h2>
+                <div class="form-group">
+                    <label for="ageclass">Catégorie d'âge *</label>
+                    <select id="ageclass" class="form-control" required>
+                        <option value="">-- Choisir une catégorie --</option>
+                    </select>
+                </div>
+                <button type="button" class="btn-secondary" onclick="prevStep(3)">Retour</button>
+                <button type="button" class="btn-primary" onclick="nextStep(3)">Suivant</button>
+            </div>
+
+            <div id="step-4" class="form-step">
+                <h2>4. Choix des départs</h2>
+                <p class="info-text">Sélectionnez le(s) départ(s) auquel vous souhaitez participer</p>
+                <div id="sessions-container"></div>
+                <button type="button" class="btn-secondary" onclick="prevStep(4)">Retour</button>
+                <button type="button" class="btn-primary" onclick="nextStep(4)">Suivant</button>
+            </div>
+
+            <div id="step-5" class="form-step">
+                <h2>5. Choix des blasons</h2>
+                <p class="info-text">Sélectionnez le type de blason pour chaque départ</p>
+                <div id="targetface-container"></div>
+                <button type="button" class="btn-secondary" onclick="prevStep(5)">Retour</button>
+                <button type="button" class="btn-primary" onclick="nextStep(5)">Suivant</button>
+            </div>
+
+            <div id="step-6" class="form-step">
+                <h2>6. Récapitulatif</h2>
+                <div class="info-box" id="summary-content"></div>
+                <button type="button" class="btn-secondary" onclick="prevStep(6)">Retour</button>
+                <button type="button" class="btn-primary" onclick="submitRegistration()">Confirmer l'inscription</button>
+            </div>
+
+        </form>
+    </div>
+
+    <script>
+        const TOURNAMENT_ID = 124;
+    </script>
+    <script src="js/script.js"></script>
+</body>
+</html>
+

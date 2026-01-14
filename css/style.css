@@ -1,0 +1,342 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    padding: 40px;
+}
+
+h1 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 30px;
+    font-size: 32px;
+}
+
+h2 {
+    color: #667eea;
+    margin-bottom: 20px;
+    font-size: 24px;
+}
+
+/* Barre de progression */
+.progress-bar {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 40px;
+    position: relative;
+}
+
+.progress-bar::before {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #e0e0e0;
+    z-index: 0;
+}
+
+.progress-step {
+    flex: 1;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+}
+
+.progress-step::before {
+    content: attr(data-step);
+    display: block;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #e0e0e0;
+    color: #999;
+    line-height: 40px;
+    margin: 0 auto 10px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.progress-step.active::before {
+    background: #667eea;
+    color: white;
+    transform: scale(1.1);
+}
+
+.progress-step {
+    font-size: 12px;
+    color: #999;
+}
+
+.progress-step.active {
+    color: #667eea;
+    font-weight: bold;
+}
+
+/* Étapes du formulaire */
+.form-step {
+    display: none;
+    animation: fadeIn 0.4s ease-in;
+}
+
+.form-step.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Groupes de formulaire */
+.form-group {
+    margin-bottom: 25px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #555;
+    font-weight: 600;
+}
+
+.form-control {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Boutons */
+button {
+    padding: 12px 30px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-right: 10px;
+}
+
+.btn-primary {
+    background: #667eea;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #5568d3;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+}
+
+.btn-secondary {
+    background: #e0e0e0;
+    color: #555;
+}
+
+.btn-secondary:hover {
+    background: #d0d0d0;
+}
+
+/* Boîtes d'information */
+.info-box {
+    background: #f8f9fa;
+    border-left: 4px solid #667eea;
+    padding: 20px;
+    margin-bottom: 25px;
+    border-radius: 8px;
+}
+
+.info-box p {
+    margin-bottom: 10px;
+    color: #555;
+}
+
+.info-box p:last-child {
+    margin-bottom: 0;
+}
+
+.info-text {
+    color: #666;
+    margin-bottom: 20px;
+    font-style: italic;
+}
+
+/* Checkboxes personnalisées */
+.checkbox-item {
+    margin-bottom: 15px;
+    padding: 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.checkbox-item:hover {
+    border-color: #667eea;
+    background: #f8f9ff;
+}
+
+.checkbox-item input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    margin-right: 15px;
+    cursor: pointer;
+    accent-color: #667eea;
+}
+
+.checkbox-item label {
+    cursor: pointer;
+    flex: 1;
+    margin: 0;
+    font-weight: normal;
+}
+
+/* Messages d'erreur */
+.error-message {
+    background: #fee;
+    border-left: 4px solid #f44;
+    color: #c33;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    animation: shake 0.5s ease;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+}
+
+.error {
+    color: #f44;
+    font-weight: bold;
+}
+
+/* Messages de succès */
+.success-message {
+    background: #efe;
+    border-left: 4px solid #4f4;
+    color: #3a3;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    animation: fadeIn 0.5s ease;
+}
+
+/* Loader */
+.loading {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.spinner {
+    border: 4px solid rgba(255,255,255,0.3);
+    border-top: 4px solid white;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading p {
+    color: white;
+    margin-top: 20px;
+    font-size: 18px;
+}
+
+/* Blasons par départ */
+.targetface-session {
+    margin-bottom: 20px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+}
+
+.targetface-session label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 10px;
+    font-size: 16px;
+    color: #667eea;
+}
+
+.targetface-session select {
+    width: 100%;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .container {
+        padding: 20px;
+    }
+    
+    h1 {
+        font-size: 24px;
+    }
+    
+    .progress-bar {
+        flex-wrap: wrap;
+    }
+    
+    .progress-step {
+        font-size: 10px;
+        flex-basis: 33.33%;
+        margin-bottom: 20px;
+    }
+    
+    button {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+}
+
