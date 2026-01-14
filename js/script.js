@@ -34,9 +34,6 @@ function validateToken() {
     });
 }
 
-
-
-
 function loadTournamentName() {
     const formData = new FormData();
     formData.append('action', 'get_tournament_name');
@@ -489,7 +486,7 @@ function submitRegistration() {
             // Réinitialiser le formulaire après 3 secondes
             setTimeout(() => {
                 location.reload();
-            }, 3000);
+            }, 30000);
         } else {
             showError(data.error || "Erreur lors de l'inscription");
         }

@@ -254,7 +254,7 @@ if ($action === 'search_license') {
         $check_row = mysqli_fetch_assoc($check_result);
 
         if ($check_row['count'] > 0) {
-            send_error("Vous êtes déjà inscrit à ce tournoi");
+            send_error("Vous êtes déjà inscrit à ce tournoi. Si vous souhaitez modifier votre inscription, veuillez contacter l'organisateur.");
         }
 
         send_success([
