@@ -179,7 +179,6 @@ function searchLicense(license, lastname) {
     .then(response => response.json())
     .then(data => {
         hideLoading();
-        console.log('Réponse search_license:', data);
         if (data.success) {
             registrationData = {
                 license: data.data.license,
@@ -189,10 +188,9 @@ function searchLicense(license, lastname) {
                 dob: data.data.dob,
                 ioccode: data.data.ioccode,
                 club: data.data.club,
-                country_code: data.data.country_code,  // AJOUT ICI
+                country_code: data.data.country_code,
                 classified: data.data.classified
             };
-            console.log('registrationData:', registrationData);
             displayArcherInfo();
             loadDivisions();
         } else {
@@ -205,9 +203,17 @@ function searchLicense(license, lastname) {
     });
 }
 
+// Fonction pour formater les noms (première lettre majuscule)
+function formatProperName(name) {
+    if (!name) return '';
+    return name.toLowerCase().replace(/\b\w/g, function(letter) {
+        return letter.toUpperCase();
+    });
+}
+
 function displayArcherInfo() {
-    document.getElementById('info-name').textContent = registrationData.name;
-    document.getElementById('info-firstname').textContent = registrationData.firstname;
+    document.getElementById('info-name').textContent = formatProperName(registrationData.name);
+    document.getElementById('info-firstname').textContent = formatProperName(registrationData.firstname);
     document.getElementById('info-dob').textContent = registrationData.dob;
     document.getElementById('info-sex').textContent = registrationData.sex === 0 ? 'Homme' : 'Femme';
     document.getElementById('info-club').textContent = registrationData.club;
@@ -421,8 +427,8 @@ function showSummary() {
 
     document.getElementById('summary-content').innerHTML = `
         <p><strong>Licence :</strong> ${registrationData.license}</p>
-        <p><strong>Nom :</strong> ${registrationData.name}</p>
-        <p><strong>Prénom :</strong> ${registrationData.firstname}</p>
+        <p><strong>Nom :</strong> ${formatProperName(registrationData.name)}</p>
+        <p><strong>Prénom :</strong> ${formatProperName(registrationData.firstname)}</p>
         <p><strong>Email :</strong> ${registrationData.email}</p>
         <p><strong>Club :</strong> ${registrationData.club}</p>
         <p><strong>Division :</strong> ${registrationData.division}</p>
@@ -434,8 +440,6 @@ function showSummary() {
 
 function submitRegistration() {
     showLoading();
-    
-    console.log('Données envoyées:', registrationData);  // Pour déboguer
 
     const formData = new FormData();
     formData.append('action', 'submit_registration');

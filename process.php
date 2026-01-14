@@ -30,11 +30,18 @@ function send_success($data = [], $message = '') {
     exit;
 }
 
+// Fonction pour formater les noms propres (première lettre majuscule)
+function format_proper_name($name) {
+    // Convertir en minuscules puis première lettre de chaque mot en majuscule
+    $name = mb_strtolower(trim($name), 'UTF-8');
+    return mb_convert_case($name, MB_CASE_TITLE, 'UTF-8');
+}
+
 // Fonction d'envoi de mail
 function send_registration_email($user_email, $admin_email, $user_data, $tournament_name, $from_email = 'noreply@ianseo.net') {
     $license = htmlspecialchars($user_data['license']);
-    $name = htmlspecialchars($user_data['name']);
-    $firstname = htmlspecialchars($user_data['firstname']);
+    $name = htmlspecialchars(format_proper_name($user_data['name']));
+    $firstname = htmlspecialchars(format_proper_name($user_data['firstname']));
     $division = htmlspecialchars($user_data['division']);
     $ageclass = htmlspecialchars($user_data['ageclass']);
     $sessions = implode(', ', $user_data['sessions']);
@@ -505,7 +512,7 @@ if ($action === 'submit_registration') {
                 CoSubCountry, CoParent1, CoParent2, CoMaCode, CoCaCode, CoOnlineId
             ) VALUES (?, ?, ?, ?, ?, '', 0, 0, '', '', 0)";
             $insert_country_stmt = mysqli_prepare($conn, $insert_country_query);
-            $ioc_code = $data['ioccode'];
+            $ioc_code = !empty($data['ioccode']) ? $data['ioccode'] : 'FRA';
             mysqli_stmt_bind_param($insert_country_stmt, "issss", 
                 $tournament_id, 
                 $club_code,      // Code depuis LueCountry
@@ -560,13 +567,17 @@ if ($action === 'submit_registration') {
                 NOW()
             )";
 
+            // Formater les noms avant insertion
+            $formatted_name = format_proper_name($data['name']);
+            $formatted_firstname = format_proper_name($data['firstname']);
+
             $stmt = mysqli_prepare($conn, $insert_query);
             mysqli_stmt_bind_param($stmt, "isssssssssiiii",
                 $tournament_id,
                 $data['license'],
                 $data['ioccode'],
-                $data['name'],
-                $data['firstname'],
+                $formatted_name,           // Nom formaté
+                $formatted_firstname,      // Prénom formaté
                 $data['sex'],
                 $data['dob'],
                 $data['division'],
