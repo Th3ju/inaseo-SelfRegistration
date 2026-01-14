@@ -75,6 +75,20 @@ if (!$conn) {
 }
 mysqli_set_charset($conn, 'utf8mb4');
 
+// ACTION: get_tournament_name
+if ($action === 'get_tournament_name') {
+    $query = "SELECT ToName FROM Tournament WHERE ToId = ?";
+    $stmt = mysqli_prepare($conn, $query);
+    mysqli_stmt_bind_param($stmt, "i", $tournament_id);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+    
+    if ($row = mysqli_fetch_assoc($result)) {
+        send_success(['name' => $row['ToName']]);
+    } else {
+        send_error("Tournoi introuvable");
+    }
+}
 
 // ACTION: search_license
 if ($action === 'search_license') {
@@ -87,7 +101,7 @@ if ($action === 'search_license') {
                      LueIocCode, LueCoDescr, LueClassified
               FROM LookUpEntries 
               WHERE LueCode = ? 
-              AND UPPER(TRIM(LueFamilyName)) = UPPER(?)";
+              AND UPPER(TRIM(LueName)) = UPPER(?)";
     
     $stmt = mysqli_prepare($conn, $query);
     mysqli_stmt_bind_param($stmt, "ss", $license, $lastname);
@@ -124,8 +138,6 @@ if ($action === 'search_license') {
         send_error("Licence et nom de famille ne correspondent pas");
     }
 }
-
-
 
 // ACTION: get_divisions
 if ($action === 'get_divisions') {
@@ -468,23 +480,21 @@ if ($action === 'submit_registration') {
             }
             
             debug_response("Qualification créée", ['QuId' => $entry_id, 'QuSession' => $session]);
-
-// Insertion de l'email dans ExtraData
-if (!empty($data['email'])) {
-    $email_query = "INSERT INTO ExtraData (EdId, EdType, EdEmail) 
-                   VALUES (?, 'E', ?)
-                   ON DUPLICATE KEY UPDATE EdEmail = ?";
-    $email_stmt = mysqli_prepare($conn, $email_query);
-    mysqli_stmt_bind_param($email_stmt, "iss", $entry_id, $data['email'], $data['email']);
-    
-    if (!mysqli_stmt_execute($email_stmt)) {
-        debug_response("Avertissement email", mysqli_stmt_error($email_stmt));
-    } else {
-        debug_response("Email enregistré", ['EnId' => $entry_id, 'Email' => $data['email']]);
-    }
-}
-
-
+            
+            // Insertion de l'email dans ExtraData
+            if (!empty($data['email'])) {
+                $email_query = "INSERT INTO ExtraData (EdId, EdType, EdEvent, EdEmail) 
+                               VALUES (?, 'E', '', ?)
+                               ON DUPLICATE KEY UPDATE EdEmail = ?";
+                $email_stmt = mysqli_prepare($conn, $email_query);
+                mysqli_stmt_bind_param($email_stmt, "iss", $entry_id, $data['email'], $data['email']);
+                
+                if (!mysqli_stmt_execute($email_stmt)) {
+                    debug_response("Avertissement email", mysqli_stmt_error($email_stmt));
+                } else {
+                    debug_response("Email enregistré", ['EnId' => $entry_id, 'Email' => $data['email']]);
+                }
+            }
         }
         
         mysqli_commit($conn);
@@ -500,22 +510,6 @@ if (!empty($data['email'])) {
     }
 }
 
-// ACTION: get_tournament_name
-if ($action === 'get_tournament_name') {
-    $query = "SELECT ToName FROM Tournament WHERE ToId = ?";
-    $stmt = mysqli_prepare($conn, $query);
-    mysqli_stmt_bind_param($stmt, "i", $tournament_id);
-    mysqli_stmt_execute($stmt);
-    $result = mysqli_stmt_get_result($stmt);
-    
-    if ($row = mysqli_fetch_assoc($result)) {
-        send_success(['name' => $row['ToName']]);
-    } else {
-        send_error("Tournoi introuvable");
-    }
-}
-
 mysqli_close($conn);
 send_error("Action inconnue", ['action' => $action]);
 ?>
-
