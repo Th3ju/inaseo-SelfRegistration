@@ -252,8 +252,8 @@ if ($action === 'search_license') {
 
         send_success([
             'license' => $row['LueCode'],
-            'name' => $row['LueName'],
-            'firstname' => $row['LueFamilyName'],
+            'firstname' => $row['LueName'],           // LueName = Prénom
+            'name' => $row['LueFamilyName'],          // LueFamilyName = Nom
             'sex' => intval($row['LueSex']),
             'dob' => $row['LueCtrlCode'],
             'ioccode' => $row['LueIocCode'],
@@ -483,20 +483,37 @@ if ($action === 'submit_registration') {
     mysqli_begin_transaction($conn);
 
     try {
-        // Récupérer le premier CoId du tournoi
-        $country_query = "SELECT CoId FROM Countries WHERE CoTournament = ? LIMIT 1";
+        // Récupérer le CoId correspondant au club de l'archer
+        $club_name = $data['club'];
+        $country_query = "SELECT CoId FROM Countries 
+                         WHERE CoTournament = ? 
+                         AND (CoCode = ? OR CoName = ?)
+                         LIMIT 1";
         $country_stmt = mysqli_prepare($conn, $country_query);
-        mysqli_stmt_bind_param($country_stmt, "i", $tournament_id);
+        mysqli_stmt_bind_param($country_stmt, "iss", $tournament_id, $club_name, $club_name);
         mysqli_stmt_execute($country_stmt);
         $country_result = mysqli_stmt_get_result($country_stmt);
         $country_row = mysqli_fetch_assoc($country_result);
 
+        // Si le club n'existe pas dans le tournoi, créer une entrée
         if (!$country_row) {
-            throw new Exception("Aucun pays configuré pour ce tournoi");
+            $insert_country_query = "INSERT INTO Countries (CoTournament, CoCode, CoName, CoIocCode) 
+                                    VALUES (?, ?, ?, ?)";
+            $insert_country_stmt = mysqli_prepare($conn, $insert_country_query);
+            $ioc_code = $data['ioccode'];
+            mysqli_stmt_bind_param($insert_country_stmt, "isss", $tournament_id, $club_name, $club_name, $ioc_code);
+            
+            if (!mysqli_stmt_execute($insert_country_stmt)) {
+                throw new Exception("Erreur création club: " . mysqli_stmt_error($insert_country_stmt));
+            }
+            
+            $country_id = mysqli_insert_id($conn);
+            debug_response("Nouveau club créé", ['CoId' => $country_id, 'CoName' => $club_name]);
+        } else {
+            $country_id = $country_row['CoId'];
         }
 
-        $country_id = $country_row['CoId'];
-        debug_response("Country ID", $country_id);
+        debug_response("Country/Club ID", $country_id);
 
         sort($data['sessions']);
         $inserted_ids = [];
