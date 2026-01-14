@@ -172,7 +172,7 @@ function showError(message) {
     errorDiv.style.display = 'block';
     setTimeout(() => {
         errorDiv.style.display = 'none';
-    }, 5000);
+    }, 10000);
     window.scrollTo(0, 0);
 }
 
