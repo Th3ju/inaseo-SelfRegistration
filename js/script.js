@@ -69,16 +69,31 @@ if (step === 1) {
     searchLicense(license, lastname);
 }
    
-
-    else if (step === 2) {
-        const division = document.getElementById('division').value;
-        if (!division) {
-            showError('Veuillez sélectionner une division');
-            return;
-        }
-        registrationData.division = division;
-        loadClasses();
+else if (step === 2) {
+    const email = document.getElementById('email').value.trim();
+    const division = document.getElementById('division').value;
+    
+    if (!email) {
+        showError('Veuillez saisir votre adresse email');
+        return;
     }
+    
+    // Validation simple de l'email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        showError('Veuillez saisir une adresse email valide');
+        return;
+    }
+    
+    if (!division) {
+        showError('Veuillez sélectionner une division');
+        return;
+    }
+    
+    registrationData.email = email;
+    registrationData.division = division;
+    loadClasses();
+}
     
     else if (step === 3) {
         const ageclass = document.getElementById('ageclass').value;
@@ -428,12 +443,14 @@ function showSummary() {
     document.getElementById('summary-content').innerHTML = `
         <p><strong>Licence :</strong> ${registrationData.license}</p>
         <p><strong>Nom :</strong> ${registrationData.firstname} ${registrationData.name}</p>
+        <p><strong>Email :</strong> ${registrationData.email}</p>
         <p><strong>Club :</strong> ${registrationData.club}</p>
         <p><strong>Division :</strong> ${registrationData.division}</p>
         <p><strong>Catégorie :</strong> ${registrationData.ageclass}</p>
         <p><strong>Départs et blasons :</strong><br>${sessionsText}</p>
     `;
 }
+
 
 function submitRegistration() {
     showLoading();

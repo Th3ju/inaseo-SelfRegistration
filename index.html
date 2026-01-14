@@ -51,27 +51,34 @@
     <button type="button" class="btn-primary" onclick="nextStep(1)">Suivant</button>
 </div>
 
-            <!-- Étape 2: Informations archer (auto-remplies) -->
-            <div id="step-2" class="form-step">
-                <h2>2. Vos informations</h2>
-                <div class="info-box">
-                    <p><strong>Nom :</strong> <span id="info-name"></span></p>
-                    <p><strong>Prénom :</strong> <span id="info-firstname"></span></p>
-                    <p><strong>Date de naissance :</strong> <span id="info-dob"></span></p>
-                    <p><strong>Sexe :</strong> <span id="info-sex"></span></p>
-                    <p><strong>Club :</strong> <span id="info-club"></span></p>
-                </div>
-                
-                <div class="form-group">
-                    <label for="division">Division *</label>
-                    <select id="division" class="form-control" required>
-                        <option value="">-- Choisir une division --</option>
-                    </select>
-                </div>
-                
-                <button type="button" class="btn-secondary" onclick="prevStep(2)">Retour</button>
-                <button type="button" class="btn-primary" onclick="nextStep(2)">Suivant</button>
-            </div>
+<!-- Étape 2: Informations archer (auto-remplies) -->
+<div id="step-2" class="form-step">
+    <h2>2. Vos informations</h2>
+    <div class="info-box">
+        <p><strong>Nom :</strong> <span id="info-name"></span></p>
+        <p><strong>Prénom :</strong> <span id="info-firstname"></span></p>
+        <p><strong>Date de naissance :</strong> <span id="info-dob"></span></p>
+        <p><strong>Sexe :</strong> <span id="info-sex"></span></p>
+        <p><strong>Club :</strong> <span id="info-club"></span></p>
+    </div>
+    
+    <div class="form-group">
+        <label for="email">Adresse email *</label>
+        <input type="email" id="email" class="form-control" placeholder="votre@email.com" required>
+        <small style="color: #666; font-style: italic;">Vous recevrez une confirmation d'inscription</small>
+    </div>
+    
+    <div class="form-group">
+        <label for="division">Division *</label>
+        <select id="division" class="form-control" required>
+            <option value="">-- Choisir une division --</option>
+        </select>
+    </div>
+    
+    <button type="button" class="btn-secondary" onclick="prevStep(2)">Retour</button>
+    <button type="button" class="btn-primary" onclick="nextStep(2)">Suivant</button>
+</div>
+
 
             <!-- Étape 3: Catégorie d'âge -->
             <div id="step-3" class="form-step">
