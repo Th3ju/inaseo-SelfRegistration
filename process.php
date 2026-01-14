@@ -521,14 +521,6 @@ if ($action === 'submit_registration') {
             $country_id = $country_row['CoId'];
         }
 
-            
-            $country_id = mysqli_insert_id($conn);
-            debug_response("Nouveau club créé", ['CoId' => $country_id, 'CoName' => $club_name]);
-        } else {
-            $country_id = $country_row['CoId'];
-        }
-
-
         debug_response("Country/Club ID", $country_id);
 
         sort($data['sessions']);
