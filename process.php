@@ -499,8 +499,8 @@ if ($action === 'submit_registration') {
         if (!$country_row) {
             $insert_country_query = "INSERT INTO Countries (
                 CoTournament, CoCode, CoName, CoNameComplete, CoIocCode, 
-                CoSubCountry, CoContAssoc, CoContFed
-            ) VALUES (?, ?, ?, ?, ?, '', '', '')";
+                CoSubCountry, CoParent1, CoParent2, CoMaCode, CoCaCode, CoOnlineId
+            ) VALUES (?, ?, ?, ?, ?, '', 0, 0, '', '', 0)";
             $insert_country_stmt = mysqli_prepare($conn, $insert_country_query);
             $ioc_code = $data['ioccode'];
             mysqli_stmt_bind_param($insert_country_stmt, "issss", 
@@ -514,6 +514,13 @@ if ($action === 'submit_registration') {
             if (!mysqli_stmt_execute($insert_country_stmt)) {
                 throw new Exception("Erreur création club: " . mysqli_stmt_error($insert_country_stmt));
             }
+            
+            $country_id = mysqli_insert_id($conn);
+            debug_response("Nouveau club créé", ['CoId' => $country_id, 'CoName' => $club_name]);
+        } else {
+            $country_id = $country_row['CoId'];
+        }
+
             
             $country_id = mysqli_insert_id($conn);
             debug_response("Nouveau club créé", ['CoId' => $country_id, 'CoName' => $club_name]);
