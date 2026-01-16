@@ -197,7 +197,7 @@ if (function_exists('curl_init')) {
     curl_close($ch);
 
     if ($httpCode !== 200 || $zipContent === false) {
-        logMsg("Échec cURL (code $httpCode)", 'error');
+        logMsg("Échec cURL (code " . $httpCode . ")", 'error');
         $zipContent = false;
     } else {
         logMsg("Téléchargement réussi via cURL (" . strlen($zipContent) . " octets)", 'success');
@@ -286,7 +286,7 @@ if (empty($sourceDir)) {
 logMsg("📂 Dossier source trouvé : " . basename($sourceDir), 'info');
 
 // 4. Copier les fichiers avec exclusion
-logMsg("📝 Copie des fichiers vers " . $moduleDir . "...");
+logMsg("📝 Copie des fichiers...");
 
 $count = 0;
 $errorCount = 0;
@@ -312,15 +312,9 @@ foreach ($iterator as $item) {
         $destPath = $moduleDir . $relativePath;
         $filename = basename($destPath);
 
-        // Debug : afficher les 3 premiers fichiers copiés
-        if ($count < 3) {
-            $debugMsg = "Debug: " . $relativePath . " vers " . $destPath;
-            logMsg($debugMsg, 'info');
-        }
-
         // Vérifier si c'est un fichier protégé qui existe déjà
         if (in_array($filename, $protectedFiles) && file_exists($destPath)) {
-            logMsg("🔒 Fichier protégé conservé : $filename", 'info');
+            logMsg("🔒 Fichier protégé conservé : " . $filename, 'info');
             $skippedCount++;
             continue;
         }
@@ -334,7 +328,7 @@ foreach ($iterator as $item) {
         $destDir = dirname($destPath);
         if (!is_dir($destDir)) {
             if (!mkdir($destDir, 0755, true)) {
-                logMsg("Impossible de créer : $destDir", 'error');
+                logMsg("Impossible de créer : " . $destDir, 'error');
                 $errorCount++;
                 continue;
             }
@@ -351,7 +345,7 @@ foreach ($iterator as $item) {
 
             // Afficher progression tous les 5 fichiers
             if ($count % 5 === 0) {
-                logMsg("$count fichiers copiés...");
+                logMsg($count . " fichiers copiés...");
                 flush();
             }
         } else {
@@ -382,14 +376,14 @@ logMsg("✅ Nettoyage terminé", 'success');
 // Résumé
 echo "<div style='margin: 30px 0; padding: 20px; background: #d4edda; border-left: 4px solid #28a745; border-radius: 5px;'>";
 echo "<h2 style='margin-top: 0; color: #155724;'>✅ Mise à jour terminée avec succès !</h2>";
-echo "<p><strong>Fichiers copiés :</strong> $count</p>";
+echo "<p><strong>Fichiers copiés :</strong> " . $count . "</p>";
 
 if ($skippedCount > 0) {
-    echo "<p><strong>Fichiers protégés conservés :</strong> $skippedCount</p>";
+    echo "<p><strong>Fichiers protégés conservés :</strong> " . $skippedCount . "</p>";
 }
 
 if ($errorCount > 0) {
-    echo "<p style='color: #dc3545;'><strong>Erreurs :</strong> $errorCount</p>";
+    echo "<p style='color: #dc3545;'><strong>Erreurs :</strong> " . $errorCount . "</p>";
 }
 echo "</div>";
 
@@ -412,12 +406,12 @@ foreach ($checkFiles as $name => $path) {
     if (file_exists($path)) {
         $status = strpos($name, 'protégé') !== false ? 'conservé' : 'présent';
         $icon = strpos($name, 'protégé') !== false ? '🔒' : '✅';
-        echo "<div style='padding: 5px 0;'>$icon <strong>$name</strong> - $status</div>";
+        echo "<div style='padding: 5px 0;'>" . $icon . " <strong>" . htmlspecialchars($name) . "</strong> - " . $status . "</div>";
     } else {
         if (strpos($name, 'protégé') === false) {
-            echo "<div style='padding: 5px 0; color: #dc3545;'>❌ <strong>$name</strong> - absent</div>";
+            echo "<div style='padding: 5px 0; color: #dc3545;'>❌ <strong>" . htmlspecialchars($name) . "</strong> - absent</div>";
         } else {
-            echo "<div style='padding: 5px 0; color: #6c757d;'>ℹ️ <strong>$name</strong> - non présent</div>";
+            echo "<div style='padding: 5px 0; color: #6c757d;'>ℹ️ <strong>" . htmlspecialchars($name) . "</strong> - non présent</div>";
         }
     }
 }
