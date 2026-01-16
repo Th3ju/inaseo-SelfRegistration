@@ -4,30 +4,36 @@
  * Emplacement : /var/www/html/Modules/Custom/SelfRegistration/selfregistration.php
  */
 
-// Charger la configuration Ianseo - EXACTEMENT COMME process.php
-$ianseoRoot = dirname(__DIR__, 3);
-$configPath = $ianseoRoot . '/Common/config.inc.php';
+require_once(dirname(dirname(__FILE__)) . '/config.php');
 
-if (!file_exists($configPath)) {
-    die("Erreur : Configuration IANSEO introuvable à " . htmlspecialchars($configPath));
+// Charger Fun_Various.inc.php
+$possiblePaths = array(
+    'Common/Fun_Various.inc.php',
+    '../Common/Fun_Various.inc.php',
+    dirname(dirname(__FILE__)) . '/Common/Fun_Various.inc.php',
+    dirname(__FILE__) . '/../Common/Fun_Various.inc.php'
+);
+
+foreach ($possiblePaths as $path) {
+    if (file_exists($path)) {
+        require_once($path);
+        break;
+    }
 }
 
-// Initialiser CFG global - EXACTEMENT COMME DANS process.php
-global $CFG;
-$CFG = new stdClass();
-include_once($configPath);
+CheckTourSession(true);
+checkACL(AclParticipants, AclReadWrite);
 
-// Compatibilité : Créer WDB depuis DBNAME si nécessaire - COMME process.php
-if (!isset($CFG->WDB) && isset($CFG->DBNAME)) {
-    $CFG->WDB = $CFG->DBNAME;
-}
+$TourId = $_SESSION['TourId'];
+$PAGE_TITLE = 'Auto-inscription - Configuration';
+$IncludeJquery = true;
 
 // Connexion à la base de données pour récupérer les tournois
-$conn = null;
 $availableTournaments = [];
-$dbError = null;
 
 try {
+    global $CFG;
+    
     // Vérifier les variables nécessaires - avec underscores
     if (!isset($CFG->W_HOST) || !isset($CFG->W_USER) || !isset($CFG->W_PASS) || !isset($CFG->DB_NAME)) {
         throw new Exception("Configuration IANSEO incomplète");
@@ -55,7 +61,6 @@ try {
 } catch (Exception $e) {
     $dbError = $e->getMessage();
 }
-
 
 // Chemin du fichier de configuration
 $configFile = __DIR__ . '/config.php';
@@ -203,486 +208,474 @@ $editComp = $editId && isset($competitions[$editId]) ? $competitions[$editId] : 
 
 // Générer un token par défaut pour les nouveaux ajouts
 $defaultToken = $editComp ? $editComp['token'] : generateToken();
+
+// Charger l'en-tête IANSEO
+include('Common/Templates/head.php');
 ?>
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Administration - Gestion des Compétitions</title>
-    <link rel="stylesheet" href="css/style.css">
-    <style>
-        /* Override pour pleine largeur */
-.container {
-    max-width: 95%;
-}
+
 <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+/* Override pour pleine largeur */
+.container {
+    max-width: 1400px;
+}
+
+/* Styles spécifiques à la page d'administration */
+.message {
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+.message.success {
+    background: #d4edda;
+    border-left: 4px solid #28a745;
+    color: #155724;
+}
+
+.message.error {
+    background: #f8d7da;
+    border-left: 4px solid #dc3545;
+    color: #721c24;
+}
+
+.message.warning {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    color: #856404;
+}
+
+.config-section {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+    border: 2px solid #e0e0e0;
+}
+
+h2 {
+    color: #667eea;
+    margin-top: 30px;
+    margin-bottom: 20px;
+    font-size: 20px;
+    border-bottom: 2px solid #667eea;
+    padding-bottom: 10px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #555;
+    font-weight: 600;
+}
+
+.form-control {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-control[readonly] {
+    background-color: #f5f5f5;
+    cursor: not-allowed;
+}
+
+select.form-control {
+    cursor: pointer;
+}
+
+select.form-control[disabled] {
+    background-color: #f5f5f5;
+    cursor: not-allowed;
+}
+
+small {
+    display: block;
+    margin-top: 5px;
+    color: #999;
+    font-size: 14px;
+}
+
+.btn {
+    padding: 12px 30px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-primary {
+    background: #667eea;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #5568d3;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+}
+
+.btn-danger {
+    background: #dc3545;
+    color: white;
+    padding: 8px 16px;
+    font-size: 14px;
+}
+
+.btn-danger:hover {
+    background: #c82333;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(220, 53, 69, 0.3);
+}
+
+.btn-warning {
+    background: #ffc107;
+    color: #333;
+    padding: 8px 16px;
+    font-size: 14px;
+    margin-right: 10px;
+}
+
+.btn-warning:hover {
+    background: #e0a800;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 193, 7, 0.3);
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+    padding: 8px 16px;
+    font-size: 14px;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+}
+
+.btn-cancel {
+    background: #6c757d;
+    color: white;
+    margin-left: 10px;
+}
+
+.btn-cancel:hover {
+    background: #5a6268;
+}
+
+/* Tableau plus lisible */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    font-size: 15px;
+}
+
+th, td {
+    padding: 15px 12px;
+    text-align: left;
+    border-bottom: 1px solid #e0e0e0;
+    vertical-align: middle;
+}
+
+th {
+    background: #f8f9fa;
+    color: #333;
+    font-weight: 600;
+}
+
+tr:hover {
+    background: #f8f9ff;
+}
+
+/* Colonnes avec largeurs optimisées */
+th:nth-child(1), td:nth-child(1) { /* ID */
+    width: 60px;
+}
+
+th:nth-child(2), td:nth-child(2) { /* Nom */
+    width: 25%;
+}
+
+th:nth-child(3), td:nth-child(3) { /* Token */
+    width: 15%;
+}
+
+th:nth-child(4), td:nth-child(4) { /* Email */
+    width: 18%;
+}
+
+th:nth-child(5), td:nth-child(5) { /* URL */
+    width: 12%;
+}
+
+th:nth-child(6), td:nth-child(6) { /* Actions */
+    width: auto;
+    text-align: right;
+}
+
+/* Espacement des boutons d'action */
+.actions {
+    white-space: nowrap;
+}
+
+.actions form {
+    display: inline-block;
+    margin-left: 5px;
+}
+
+.actions .btn {
+    margin: 0;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    color: #999;
+    font-style: italic;
+}
+
+.form-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+code {
+    background: #f5f5f5;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+}
+
+.url-link {
+    color: #667eea;
+    text-decoration: none;
+}
+
+.url-link:hover {
+    text-decoration: underline;
+}
+
+.token-input-group {
+    position: relative;
+}
+
+.token-input-group .btn-secondary {
+    position: absolute;
+    right: 5px;
+    top: 5px;
+    padding: 8px 16px;
+}
+</style>
+
+<script>
+function generateNewToken() {
+    const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    let token = '';
+    for (let i = 0; i < 20; i++) {
+        token += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    document.getElementById('token').value = token;
+}
+
+function updateTournamentName() {
+    const select = document.getElementById('id');
+    const nameInput = document.getElementById('name');
+    const selectedOption = select.options[select.selectedIndex];
+    
+    if (selectedOption.value && selectedOption.dataset.name) {
+        nameInput.value = selectedOption.dataset.name;
+    }
+}
+</script>
+
+<h1>🏹 Administration des Compétitions</h1>
+
+<?php if (isset($dbError)): ?>
+    <div class="message warning">
+        ⚠️ Attention : Impossible de se connecter à la base IANSEO. <?php echo htmlspecialchars($dbError); ?>
+    </div>
+<?php endif; ?>
+
+<?php if ($message): ?>
+    <div class="message <?php echo $messageType; ?>">
+        <?php echo htmlspecialchars($message); ?>
+    </div>
+<?php endif; ?>
+
+<!-- Configuration globale -->
+<div class="config-section">
+    <h2>⚙️ Configuration globale</h2>
+    <form method="POST" action="">
+        <input type="hidden" name="action" value="update_mailfrom">
+        <div class="form-group">
+            <label for="mail_from">Email d'expédition (From)</label>
+            <input type="email" 
+                   id="mail_from" 
+                   name="mail_from" 
+                   class="form-control" 
+                   value="<?php echo htmlspecialchars($mailfrom); ?>"
+                   required>
+            <small>Adresse email utilisée comme expéditeur pour tous les emails envoyés</small>
+        </div>
+        <button type="submit" class="btn btn-primary">💾 Mettre à jour</button>
+    </form>
+</div>
+
+<h2><?php echo $editComp ? '✏️ Modifier la compétition' : '➕ Ajouter une compétition'; ?></h2>
+
+<?php if (empty($availableTournaments)): ?>
+    <div class="message warning">
+        ⚠️ Aucun tournoi trouvé dans IANSEO. Veuillez d'abord créer un tournoi dans IANSEO.
+    </div>
+<?php else: ?>
+    <form method="POST" action="">
+        <input type="hidden" name="action" value="<?php echo $editComp ? 'edit' : 'add'; ?>">
         
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        
-        .container {
-            max-width: 90%;
-            margin: 0 auto;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            padding: 40px;
-        }
-        
-        h1 {
-            color: #333;
-            margin-bottom: 30px;
-            text-align: center;
-        }
-        
-        h2 {
-            color: #667eea;
-            margin-top: 30px;
-            margin-bottom: 20px;
-            font-size: 20px;
-            border-bottom: 2px solid #667eea;
-            padding-bottom: 10px;
-        }
-        
-        .message {
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 8px;
-            font-weight: 500;
-        }
-        
-        .message.success {
-            background: #d4edda;
-            border-left: 4px solid #28a745;
-            color: #155724;
-        }
-        
-        .message.error {
-            background: #f8d7da;
-            border-left: 4px solid #dc3545;
-            color: #721c24;
-        }
-        
-        .message.warning {
-            background: #fff3cd;
-            border-left: 4px solid #ffc107;
-            color: #856404;
-        }
-        
-        .config-section {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 30px;
-            border: 2px solid #e0e0e0;
-        }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #555;
-            font-weight: 600;
-        }
-        
-        .form-control {
-            width: 100%;
-            padding: 12px 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: all 0.3s ease;
-        }
-        
-        .form-control:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-        
-        .form-control[readonly] {
-            background-color: #f5f5f5;
-            cursor: not-allowed;
-        }
-        
-        select.form-control {
-            cursor: pointer;
-        }
-        
-        select.form-control[disabled] {
-            background-color: #f5f5f5;
-            cursor: not-allowed;
-        }
-        
-        small {
-            display: block;
-            margin-top: 5px;
-            color: #999;
-            font-size: 14px;
-        }
-        
-        .btn {
-            padding: 12px 30px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-block;
-        }
-        
-        .btn-primary {
-            background: #667eea;
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            background: #5568d3;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
-        }
-        
-        .btn-danger {
-            background: #dc3545;
-            color: white;
-            padding: 8px 16px;
-            font-size: 14px;
-        }
-        
-        .btn-danger:hover {
-            background: #c82333;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(220, 53, 69, 0.3);
-        }
-        
-        .btn-warning {
-            background: #ffc107;
-            color: #333;
-            padding: 8px 16px;
-            font-size: 14px;
-            margin-right: 10px;
-        }
-        
-        .btn-warning:hover {
-            background: #e0a800;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(255, 193, 7, 0.3);
-        }
-        
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
-            padding: 8px 16px;
-            font-size: 14px;
-        }
-        
-        .btn-secondary:hover {
-            background: #5a6268;
-        }
-        
-        .btn-cancel {
-            background: #6c757d;
-            color: white;
-            margin-left: 10px;
-        }
-        
-        .btn-cancel:hover {
-            background: #5a6268;
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #e0e0e0;
-        }
-        
-        th {
-            background: #f8f9fa;
-            color: #333;
-            font-weight: 600;
-        }
-        
-        tr:hover {
-            background: #f8f9ff;
-        }
-        
-        .actions {
-            white-space: nowrap;
-        }
-        
-        .empty-state {
-            text-align: center;
-            padding: 40px;
-            color: #999;
-            font-style: italic;
-        }
-        
-        .form-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-        
-        code {
-            background: #f5f5f5;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-        }
-        
-        .url-link {
-            color: #667eea;
-            text-decoration: none;
-        }
-        
-        .url-link:hover {
-            text-decoration: underline;
-        }
-        
-        .token-input-group {
-            position: relative;
-        }
-        
-        .token-input-group .btn-secondary {
-            position: absolute;
-            right: 5px;
-            top: 5px;
-            padding: 8px 16px;
-        }
-        
-        @media (max-width: 768px) {
-            .container {
-                padding: 20px;
-            }
-            
-            table {
-                font-size: 14px;
-            }
-            
-            th, td {
-                padding: 8px;
-            }
-            
-            .btn {
-                padding: 10px 20px;
-                font-size: 14px;
-            }
-        }
-    </style>
-    <script>
-        function generateNewToken() {
-            const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-            let token = '';
-            for (let i = 0; i < 20; i++) {
-                token += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            document.getElementById('token').value = token;
-        }
-        
-        function updateTournamentName() {
-            const select = document.getElementById('id');
-            const nameInput = document.getElementById('name');
-            const selectedOption = select.options[select.selectedIndex];
-            
-            if (selectedOption.value && selectedOption.dataset.name) {
-                nameInput.value = selectedOption.dataset.name;
-            }
-        }
-    </script>
-</head>
-<body>
-    <div class="container">
-        <h1>🏹 Administration des Compétitions</h1>
-        
-        <?php if (isset($dbError)): ?>
-            <div class="message warning">
-                ⚠️ Attention : Impossible de se connecter à la base IANSEO. <?php echo htmlspecialchars($dbError); ?>
-            </div>
-        <?php endif; ?>
-        
-        <?php if ($message): ?>
-            <div class="message <?php echo $messageType; ?>">
-                <?php echo htmlspecialchars($message); ?>
-            </div>
-        <?php endif; ?>
-        
-        <!-- Configuration globale -->
-        <div class="config-section">
-            <h2>⚙️ Configuration globale</h2>
-            <form method="POST" action="">
-                <input type="hidden" name="action" value="update_mailfrom">
-                <div class="form-group">
-                    <label for="mail_from">Email d'expédition (From)</label>
-                    <input type="email" 
-                           id="mail_from" 
-                           name="mail_from" 
-                           class="form-control" 
-                           value="<?php echo htmlspecialchars($mailfrom); ?>"
-                           required>
-                    <small>Adresse email utilisée comme expéditeur pour tous les emails envoyés</small>
-                </div>
-                <button type="submit" class="btn btn-primary">💾 Mettre à jour</button>
-            </form>
+        <div class="form-group">
+            <label for="id">Tournoi IANSEO *</label>
+            <select id="id" 
+                    name="id" 
+                    class="form-control" 
+                    required
+                    <?php echo $editComp ? 'disabled' : ''; ?>
+                    onchange="updateTournamentName()">
+                <option value="">-- Sélectionner un tournoi --</option>
+                <?php foreach ($availableTournaments as $tid => $tdata): ?>
+                    <option value="<?php echo $tid; ?>" 
+                            data-name="<?php echo htmlspecialchars($tdata['name']); ?>"
+                            <?php echo ($editId == $tid) ? 'selected' : ''; ?>>
+                        [<?php echo $tid; ?>] <?php echo htmlspecialchars($tdata['name']); ?>
+                        <?php if ($tdata['from']): ?>
+                            (<?php echo date('d/m/Y', strtotime($tdata['from'])); ?>)
+                        <?php endif; ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+            <?php if ($editComp): ?>
+                <input type="hidden" name="id" value="<?php echo htmlspecialchars($editId); ?>">
+            <?php endif; ?>
+            <small>Sélectionnez le tournoi IANSEO à lier au formulaire d'inscription</small>
         </div>
         
-        <h2><?php echo $editComp ? '✏️ Modifier la compétition' : '➕ Ajouter une compétition'; ?></h2>
+        <div class="form-group">
+            <label for="name">Nom d'affichage *</label>
+            <input type="text" 
+                   id="name" 
+                   name="name" 
+                   class="form-control" 
+                   value="<?php echo $editComp ? htmlspecialchars($editComp['name'] ?? '') : ''; ?>"
+                   placeholder="Sera rempli automatiquement"
+                   required>
+            <small>Nom affiché sur le formulaire d'inscription (rempli automatiquement depuis IANSEO)</small>
+        </div>
         
-        <?php if (empty($availableTournaments)): ?>
-            <div class="message warning">
-                ⚠️ Aucun tournoi trouvé dans IANSEO. Veuillez d'abord créer un tournoi dans IANSEO.
+        <div class="form-group">
+            <label for="token">Token d'accès *</label>
+            <div class="token-input-group">
+                <input type="text" 
+                       id="token" 
+                       name="token" 
+                       class="form-control" 
+                       value="<?php echo htmlspecialchars($defaultToken); ?>"
+                       placeholder="Token de sécurité"
+                       required
+                       style="padding-right: 140px;">
+                <button type="button" class="btn btn-secondary" onclick="generateNewToken()">🔄 Régénérer</button>
             </div>
-        <?php else: ?>
-            <form method="POST" action="">
-                <input type="hidden" name="action" value="<?php echo $editComp ? 'edit' : 'add'; ?>">
-                
-                <div class="form-group">
-                    <label for="id">Tournoi IANSEO *</label>
-                    <select id="id" 
-                            name="id" 
-                            class="form-control" 
-                            required
-                            <?php echo $editComp ? 'disabled' : ''; ?>
-                            onchange="updateTournamentName()">
-                        <option value="">-- Sélectionner un tournoi --</option>
-                        <?php foreach ($availableTournaments as $tid => $tdata): ?>
-                            <option value="<?php echo $tid; ?>" 
-                                    data-name="<?php echo htmlspecialchars($tdata['name']); ?>"
-                                    <?php echo ($editId == $tid) ? 'selected' : ''; ?>>
-                                [<?php echo $tid; ?>] <?php echo htmlspecialchars($tdata['name']); ?>
-                                <?php if ($tdata['from']): ?>
-                                    (<?php echo date('d/m/Y', strtotime($tdata['from'])); ?>)
-                                <?php endif; ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                    <?php if ($editComp): ?>
-                        <input type="hidden" name="id" value="<?php echo htmlspecialchars($editId); ?>">
-                    <?php endif; ?>
-                    <small>Sélectionnez le tournoi IANSEO à lier au formulaire d'inscription</small>
-                </div>
-                
-                <div class="form-group">
-                    <label for="name">Nom d'affichage *</label>
-                    <input type="text" 
-                           id="name" 
-                           name="name" 
-                           class="form-control" 
-                           value="<?php echo $editComp ? htmlspecialchars($editComp['name'] ?? '') : ''; ?>"
-                           placeholder="Sera rempli automatiquement"
-                           required>
-                    <small>Nom affiché sur le formulaire d'inscription (rempli automatiquement depuis IANSEO)</small>
-                </div>
-                
-                <div class="form-group">
-                    <label for="token">Token d'accès *</label>
-                    <div class="token-input-group">
-                        <input type="text" 
-                               id="token" 
-                               name="token" 
-                               class="form-control" 
-                               value="<?php echo htmlspecialchars($defaultToken); ?>"
-                               placeholder="Token de sécurité"
-                               required
-                               style="padding-right: 140px;">
-                        <button type="button" class="btn btn-secondary" onclick="generateNewToken()">🔄 Régénérer</button>
-                    </div>
-                    <small>Token de sécurité pour l'accès au formulaire (cliquez sur Régénérer pour un nouveau token)</small>
-                </div>
-                
-                <div class="form-group">
-                    <label for="admin_email">Email administrateur</label>
-                    <input type="email" 
-                           id="admin_email" 
-                           name="admin_email" 
-                           class="form-control" 
-                           value="<?php echo $editComp ? htmlspecialchars($editComp['admin_email'] ?? '') : ''; ?>"
-                           placeholder="Ex: admin@example.com">
-                    <small>Email pour recevoir les notifications d'inscription (optionnel)</small>
-                </div>
-                
-                <div class="form-buttons">
-                    <button type="submit" class="btn btn-primary">
-                        <?php echo $editComp ? '💾 Enregistrer' : '➕ Ajouter'; ?>
-                    </button>
-                    <?php if ($editComp): ?>
-                        <a href="selfregistration.php" class="btn btn-cancel">❌ Annuler</a>
-                    <?php endif; ?>
-                </div>
-            </form>
-        <?php endif; ?>
+            <small>Token de sécurité pour l'accès au formulaire (cliquez sur Régénérer pour un nouveau token)</small>
+        </div>
         
-        <h2>📋 Liste des compétitions (<?php echo count($competitions); ?>)</h2>
+        <div class="form-group">
+            <label for="admin_email">Email administrateur</label>
+            <input type="email" 
+                   id="admin_email" 
+                   name="admin_email" 
+                   class="form-control" 
+                   value="<?php echo $editComp ? htmlspecialchars($editComp['admin_email'] ?? '') : ''; ?>"
+                   placeholder="Ex: admin@example.com">
+            <small>Email pour recevoir les notifications d'inscription (optionnel)</small>
+        </div>
         
-        <?php if (empty($competitions)): ?>
-            <div class="empty-state">
-                Aucune compétition configurée. Ajoutez-en une ci-dessus.
-            </div>
-        <?php else: ?>
-            <table>
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Nom</th>
-                        <th>Token</th>
-                        <th>Email Admin</th>
-                        <th>URL d'inscription</th>
-                        <th class="actions">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($competitions as $id => $comp): ?>
-                        <tr>
-                            <td><code><?php echo htmlspecialchars($id); ?></code></td>
-                            <td>
-                                <?php echo htmlspecialchars($comp['name'] ?? 'Non défini'); ?>
-                                <?php if (!isset($availableTournaments[$id])): ?>
-                                    <br><small style="color: #dc3545;">⚠️ Tournoi introuvable dans IANSEO</small>
-                                <?php endif; ?>
-                            </td>
-                            <td><code><?php echo htmlspecialchars($comp['token']); ?></code></td>
-                            <td><?php echo !empty($comp['admin_email']) ? htmlspecialchars($comp['admin_email']) : '<em style="color: #999;">Non défini</em>'; ?></td>
-                            <td>
-                                <a href="index.html?tournament=<?php echo urlencode($id); ?>&token=<?php echo urlencode($comp['token']); ?>" 
-                                   target="_blank"
-                                   class="url-link">
-                                    🔗 Ouvrir le formulaire
-                                </a>
-                            </td>
-                            <td class="actions">
-                                <a href="?edit=<?php echo urlencode($id); ?>" class="btn btn-warning">✏️ Modifier</a>
-                                <form method="POST" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette compétition ?');">
-                                    <input type="hidden" name="action" value="delete">
-                                    <input type="hidden" name="id" value="<?php echo htmlspecialchars($id); ?>">
-                                    <button type="submit" class="btn btn-danger">🗑️ Supprimer</button>
-                                </form>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        <?php endif; ?>
+        <div class="form-buttons">
+            <button type="submit" class="btn btn-primary">
+                <?php echo $editComp ? '💾 Enregistrer' : '➕ Ajouter'; ?>
+            </button>
+            <?php if ($editComp): ?>
+                <a href="selfregistration.php" class="btn btn-cancel">❌ Annuler</a>
+            <?php endif; ?>
+        </div>
+    </form>
+<?php endif; ?>
+
+<h2>📋 Liste des compétitions (<?php echo count($competitions); ?>)</h2>
+
+<?php if (empty($competitions)): ?>
+    <div class="empty-state">
+        Aucune compétition configurée. Ajoutez-en une ci-dessus.
     </div>
-</body>
-</html>
+<?php else: ?>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nom</th>
+                <th>Token</th>
+                <th>Email Admin</th>
+                <th>URL d'inscription</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach ($competitions as $id => $comp): ?>
+                <tr>
+                    <td><code><?php echo htmlspecialchars($id); ?></code></td>
+                    <td>
+                        <?php echo htmlspecialchars($comp['name'] ?? 'Non défini'); ?>
+                        <?php if (!isset($availableTournaments[$id])): ?>
+                            <br><small style="color: #dc3545;">⚠️ Tournoi introuvable dans IANSEO</small>
+                        <?php endif; ?>
+                    </td>
+                    <td><code><?php echo htmlspecialchars($comp['token']); ?></code></td>
+                    <td><?php echo !empty($comp['admin_email']) ? htmlspecialchars($comp['admin_email']) : '<em style="color: #999;">Non défini</em>'; ?></td>
+                    <td>
+                        <a href="index.html?tournament=<?php echo urlencode($id); ?>&token=<?php echo urlencode($comp['token']); ?>" 
+                           target="_blank"
+                           class="url-link">
+                            🔗 Ouvrir le formulaire
+                        </a>
+                    </td>
+                    <td class="actions">
+                        <a href="?edit=<?php echo urlencode($id); ?>" class="btn btn-warning">✏️ Modifier</a>
+                        <form method="POST" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette compétition ?');">
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="id" value="<?php echo htmlspecialchars($id); ?>">
+                            <button type="submit" class="btn btn-danger">🗑️ Supprimer</button>
+                        </form>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+<?php endif; ?>
+
+<?php include('Common/Templates/tail.php'); ?>
