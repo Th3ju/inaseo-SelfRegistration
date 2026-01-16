@@ -514,7 +514,7 @@ $editComp = $editId && isset($competitions[$editId]) ? $competitions[$editId] : 
                             <td><code><?php echo htmlspecialchars($comp['token']); ?></code></td>
                             <td><?php echo !empty($comp['admin_email']) ? htmlspecialchars($comp['admin_email']) : '<em style="color: #999;">Non défini</em>'; ?></td>
                             <td>
-                                <a href="index.html?tournament_id=<?php echo urlencode($id); ?>&token=<?php echo urlencode($comp['token']); ?>" 
+                                <a href="index.html?tournament=<?php echo urlencode($id); ?>&token=<?php echo urlencode($comp['token']); ?>" 
                                    target="_blank"
                                    class="url-link">
                                     🔗 Ouvrir le formulaire
