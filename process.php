@@ -144,7 +144,6 @@ function send_registration_email($user_email, $admin_email, $user_data, $tournam
         'admin' => $sent_admin
     ];
 }
-
 // Fonction pour charger les configurations du fichier config.php
 function load_config($tournament_id = null) {
     $config_file = __DIR__ . '/config.php';
@@ -178,40 +177,6 @@ function load_config($tournament_id = null) {
     
     return $config;
 }
-
-
-
-    
-    $lines = file($config_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    foreach ($lines as $line) {
-        $line = trim($line);
-        if (empty($line) || $line[0] === '#') {
-            continue;
-        }
-        
-        // Ligne de configuration globale (format: key=value)
-        if (strpos($line, '=') !== false) {
-            list($key, $value) = explode('=', $line, 2);
-            $key = trim($key);
-            $value = trim($value);
-            if ($key === 'mail_from') {
-                $config['mail_from'] = $value;
-            }
-        }
-        // Ligne de configuration tournoi (format: ID|TOKEN|EMAIL)
-        else if (strpos($line, '|') !== false && $tournament_id !== null) {
-            $parts = explode('|', $line);
-            if (count($parts) >= 3 && intval($parts[0]) === $tournament_id) {
-                $config['tournament'] = [
-                    'tournament_id' => intval($parts[0]),
-                    'token' => $parts[1],
-                    'admin_email' => $parts[2]
-                ];
-            }
-        }
-    }
-    
-    return $config;
 
 
 // Chemin IANSEO
