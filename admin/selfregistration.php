@@ -272,7 +272,7 @@ chdir($originalDir);
 }
 
 #Content .form-control {
-    width: 100%;
+    width: 85%;
     padding: 12px 15px;
     border: 2px solid #e0e0e0 !important;
     border-radius: 8px;

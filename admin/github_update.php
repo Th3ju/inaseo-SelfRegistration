@@ -20,6 +20,8 @@ function logMsg($msg, $type = 'info') {
     flush();
 }
 
+$moduleDir = dirname(__DIR__); // Dossier parent = SelfRegistration
+
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -98,7 +100,7 @@ if (!isset($_GET['confirm'])) {
     <div class="info-box">
         <strong>📦 Source GitHub :</strong> <code>https://github.com/Th3ju/inaseo-SelfRegistration</code><br>
         <strong>🎯 Branche :</strong> <code>main</code><br>
-        <strong>📁 Destination :</strong> <code><?php echo htmlspecialchars(__DIR__); ?></code>
+        <strong>📁 Destination :</strong> <code><?php echo htmlspecialchars($moduleDir); ?></code>
     </div>
 
     <div class="warning-box">
