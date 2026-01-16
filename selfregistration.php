@@ -214,38 +214,51 @@ include('Common/Templates/head.php');
 ?>
 
 <style>
-/* Override pour pleine largeur */
-.container {
-    max-width: 1400px;
+/* Override IANSEO styles - utiliser #Content pour plus de spécificité */
+#Content h1 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 30px;
+    font-size: 28px;
 }
 
-/* Styles spécifiques à la page d'administration */
-.message {
+#Content h2 {
+    color: #667eea !important;
+    margin-top: 30px !important;
+    margin-bottom: 20px !important;
+    font-size: 20px !important;
+    border-bottom: 2px solid #667eea !important;
+    padding-bottom: 10px !important;
+}
+
+/* Messages */
+#Content .message {
     padding: 15px;
     margin-bottom: 20px;
     border-radius: 8px;
     font-weight: 500;
 }
 
-.message.success {
+#Content .message.success {
     background: #d4edda;
     border-left: 4px solid #28a745;
     color: #155724;
 }
 
-.message.error {
+#Content .message.error {
     background: #f8d7da;
     border-left: 4px solid #dc3545;
     color: #721c24;
 }
 
-.message.warning {
+#Content .message.warning {
     background: #fff3cd;
     border-left: 4px solid #ffc107;
     color: #856404;
 }
 
-.config-section {
+/* Config section */
+#Content .config-section {
     background: #f8f9fa;
     padding: 20px;
     border-radius: 8px;
@@ -253,63 +266,58 @@ include('Common/Templates/head.php');
     border: 2px solid #e0e0e0;
 }
 
-h2 {
-    color: #667eea;
-    margin-top: 30px;
-    margin-bottom: 20px;
-    font-size: 20px;
-    border-bottom: 2px solid #667eea;
-    padding-bottom: 10px;
-}
-
-.form-group {
+/* Formulaires */
+#Content .form-group {
     margin-bottom: 20px;
 }
 
-.form-group label {
+#Content .form-group label {
     display: block;
     margin-bottom: 8px;
     color: #555;
     font-weight: 600;
 }
 
-.form-control {
+#Content .form-control {
     width: 100%;
     padding: 12px 15px;
-    border: 2px solid #e0e0e0;
+    border: 2px solid #e0e0e0 !important;
     border-radius: 8px;
     font-size: 16px;
     transition: all 0.3s ease;
+    box-sizing: border-box;
 }
 
-.form-control:focus {
+#Content .form-control:focus {
     outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    border-color: #667eea !important;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important;
 }
 
-.form-control[readonly] {
+#Content .form-control[readonly] {
     background-color: #f5f5f5;
     cursor: not-allowed;
 }
 
-select.form-control {
+#Content select.form-control {
     cursor: pointer;
+    appearance: auto;
 }
 
-select.form-control[disabled] {
+#Content select.form-control[disabled] {
     background-color: #f5f5f5;
     cursor: not-allowed;
 }
 
-small {
+#Content small {
     display: block;
     margin-top: 5px;
     color: #999;
     font-size: 14px;
 }
 
-.btn {
+/* Boutons personnalisés */
+#Content .btn {
     padding: 12px 30px;
     border: none;
     border-radius: 8px;
@@ -321,31 +329,31 @@ small {
     display: inline-block;
 }
 
-.btn-primary {
+#Content .btn-primary {
     background: #667eea;
     color: white;
 }
 
-.btn-primary:hover {
+#Content .btn-primary:hover {
     background: #5568d3;
     transform: translateY(-2px);
     box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
 }
 
-.btn-danger {
+#Content .btn-danger {
     background: #dc3545;
     color: white;
     padding: 8px 16px;
     font-size: 14px;
 }
 
-.btn-danger:hover {
+#Content .btn-danger:hover {
     background: #c82333;
     transform: translateY(-2px);
     box-shadow: 0 5px 15px rgba(220, 53, 69, 0.3);
 }
 
-.btn-warning {
+#Content .btn-warning {
     background: #ffc107;
     color: #333;
     padding: 8px 16px;
@@ -353,112 +361,121 @@ small {
     margin-right: 10px;
 }
 
-.btn-warning:hover {
+#Content .btn-warning:hover {
     background: #e0a800;
     transform: translateY(-2px);
     box-shadow: 0 5px 15px rgba(255, 193, 7, 0.3);
 }
 
-.btn-secondary {
+#Content .btn-secondary {
     background: #6c757d;
     color: white;
     padding: 8px 16px;
     font-size: 14px;
 }
 
-.btn-secondary:hover {
+#Content .btn-secondary:hover {
     background: #5a6268;
 }
 
-.btn-cancel {
+#Content .btn-cancel {
     background: #6c757d;
     color: white;
     margin-left: 10px;
 }
 
-.btn-cancel:hover {
+#Content .btn-cancel:hover {
     background: #5a6268;
 }
 
-/* Tableau plus lisible */
-table {
+/* Tableau */
+#Content table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 20px;
     font-size: 15px;
+    background: white;
 }
 
-th, td {
+#Content table th,
+#Content table td {
     padding: 15px 12px;
     text-align: left;
     border-bottom: 1px solid #e0e0e0;
     vertical-align: middle;
 }
 
-th {
+#Content table th {
     background: #f8f9fa;
     color: #333;
     font-weight: 600;
 }
 
-tr:hover {
+#Content table tr:hover {
     background: #f8f9ff;
 }
 
 /* Colonnes avec largeurs optimisées */
-th:nth-child(1), td:nth-child(1) { /* ID */
+#Content table th:nth-child(1), 
+#Content table td:nth-child(1) { 
     width: 60px;
 }
 
-th:nth-child(2), td:nth-child(2) { /* Nom */
+#Content table th:nth-child(2), 
+#Content table td:nth-child(2) { 
     width: 25%;
 }
 
-th:nth-child(3), td:nth-child(3) { /* Token */
+#Content table th:nth-child(3), 
+#Content table td:nth-child(3) { 
     width: 15%;
 }
 
-th:nth-child(4), td:nth-child(4) { /* Email */
+#Content table th:nth-child(4), 
+#Content table td:nth-child(4) { 
     width: 18%;
 }
 
-th:nth-child(5), td:nth-child(5) { /* URL */
+#Content table th:nth-child(5), 
+#Content table td:nth-child(5) { 
     width: 12%;
 }
 
-th:nth-child(6), td:nth-child(6) { /* Actions */
+#Content table th:nth-child(6), 
+#Content table td:nth-child(6) { 
     width: auto;
     text-align: right;
 }
 
-/* Espacement des boutons d'action */
-.actions {
+/* Actions */
+#Content .actions {
     white-space: nowrap;
 }
 
-.actions form {
+#Content .actions form {
     display: inline-block;
     margin-left: 5px;
 }
 
-.actions .btn {
+#Content .actions .btn {
     margin: 0;
 }
 
-.empty-state {
+/* Autres éléments */
+#Content .empty-state {
     text-align: center;
     padding: 40px;
     color: #999;
     font-style: italic;
 }
 
-.form-buttons {
+#Content .form-buttons {
     display: flex;
     gap: 10px;
     margin-top: 20px;
 }
 
-code {
+#Content code {
     background: #f5f5f5;
     padding: 2px 6px;
     border-radius: 4px;
@@ -466,20 +483,20 @@ code {
     font-size: 14px;
 }
 
-.url-link {
+#Content .url-link {
     color: #667eea;
     text-decoration: none;
 }
 
-.url-link:hover {
+#Content .url-link:hover {
     text-decoration: underline;
 }
 
-.token-input-group {
+#Content .token-input-group {
     position: relative;
 }
 
-.token-input-group .btn-secondary {
+#Content .token-input-group .btn-secondary {
     position: absolute;
     right: 5px;
     top: 5px;
