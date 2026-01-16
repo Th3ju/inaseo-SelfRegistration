@@ -390,7 +390,7 @@ include('Common/Templates/head.php');
 
 /* Tableau */
 #Content table {
-    width: 100%;
+    width: 90%;
     border-collapse: collapse;
     margin-top: 20px;
     font-size: 15px;
