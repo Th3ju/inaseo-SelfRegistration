@@ -211,7 +211,12 @@ $defaultToken = $editComp ? $editComp['token'] : generateToken();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administration - Gestion des Compétitions</title>
     <link rel="stylesheet" href="css/style.css">
-    
+    <style>
+        /* Override pour pleine largeur */
+.container {
+    max-width: 95%;
+}
+    </style>
     <script>
         function generateNewToken() {
             const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
