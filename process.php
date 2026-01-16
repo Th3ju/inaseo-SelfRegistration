@@ -146,18 +146,36 @@ function send_registration_email($user_email, $admin_email, $user_data, $tournam
 }
 
 // Fonction pour charger les configurations du fichier config.php
-define('CONFIG_ACCESS', true);
-$config_data = require __DIR__ . '/config.php';
-
-$mail_from = $config_data['mail_from'];
-$tournaments = [];
-
-foreach ($config_data['tournaments'] as $tournament_id => $tournament_config) {
-    $tournaments[$tournament_id] = [
-        'token' => $tournament_config['token'],
-        'admin_email' => $tournament_config['admin_email']
+function loadConfig($tournament_id = null) {
+    $config_file = __DIR__ . '/config.php';
+    
+    if (!file_exists($config_file)) {
+        return null;
+    }
+    
+    // Définir la constante pour autoriser l'inclusion
+    define('CONFIG_ACCESS', true);
+    
+    // Charger le fichier config.php
+    $config_data = require $config_file;
+    
+    // Structure de retour compatible avec l'ancien format
+    $config = [
+        'mail_from' => $config_data['mail_from']
     ];
+    
+    // Si un tournament_id est spécifié, retourner sa config
+    if ($tournament_id !== null && isset($config_data['tournaments'][$tournament_id])) {
+        $config['tournament'] = [
+            'tournament_id' => $tournament_id,
+            'token' => $config_data['tournaments'][$tournament_id]['token'],
+            'admin_email' => $config_data['tournaments'][$tournament_id]['admin_email']
+        ];
+    }
+    
+    return $config;
 }
+
 
     
     $lines = file($config_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
