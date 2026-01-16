@@ -234,7 +234,7 @@ $defaultToken = $editComp ? $editComp['token'] : generateToken();
     </script>
 </head>
 <body>
-    <div class="container">
+    <div class="container-admin">
         <h1>🏹 Administration des Compétitions</h1>
         
         <?php if (isset($dbError)): ?>
