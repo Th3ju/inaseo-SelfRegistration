@@ -428,12 +428,6 @@ p {
     font-weight: bold;
 }
 
-/* Tableau d'administration en pleine largeur */
-.container-admin {
-    max-width: 100%;
-    width: 100%;
-}
-
 /* Responsive */
 @media (max-width: 768px) {
     .container {
