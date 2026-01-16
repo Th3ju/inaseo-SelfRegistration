@@ -4,13 +4,14 @@
  * Emplacement : /var/www/html/Modules/Custom/SelfRegistration/admin/selfregistration.php
  */
 
-require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
+// Remonter 4 niveaux : admin/ -> SelfRegistration/ -> Custom/ -> Modules/ -> racine IANSEO
+require_once(dirname(dirname(dirname(dirname(__FILE__)))) . '/config.php');
 
 // Charger Fun_Various.inc.php
 $possiblePaths = array(
-    '../../Common/Fun_Various.inc.php',
+    dirname(dirname(dirname(dirname(__FILE__)))) . '/Common/Fun_Various.inc.php',
+    '../../../../Common/Fun_Various.inc.php',
     '../../../Common/Fun_Various.inc.php',
-    dirname(dirname(dirname(__FILE__))) . '/Common/Fun_Various.inc.php',
 );
 
 foreach ($possiblePaths as $path) {
@@ -33,7 +34,6 @@ $availableTournaments = [];
 try {
     global $CFG;
     
-    // Vérifier les variables nécessaires - avec underscores
     if (!isset($CFG->W_HOST) || !isset($CFG->W_USER) || !isset($CFG->W_PASS) || !isset($CFG->DB_NAME)) {
         throw new Exception("Configuration IANSEO incomplète");
     }
@@ -44,7 +44,6 @@ try {
     }
     mysqli_set_charset($conn, 'utf8mb4');
     
-    // Récupérer tous les tournois
     $query = "SELECT ToId, ToName, ToWhenFrom, ToWhenTo FROM Tournament ORDER BY ToWhenFrom DESC, ToId DESC";
     $result = mysqli_query($conn, $query);
     
@@ -61,7 +60,7 @@ try {
     $dbError = $e->getMessage();
 }
 
-// Chemin du fichier de configuration - remonter au dossier parent
+// Chemin du fichier de configuration
 $configFile = dirname(__DIR__) . '/config.php';
 
 // Initialiser les compétitions
@@ -73,10 +72,8 @@ if (file_exists($configFile)) {
         define('CONFIG_ACCESS', true);
     }
     
-    // Charger le fichier config
     $loadedConfig = include $configFile;
     
-    // Gérer les deux formats possibles
     if (is_array($loadedConfig) && isset($loadedConfig['tournaments'])) {
         $competitions = $loadedConfig['tournaments'];
         $mailfrom = $loadedConfig['mail_from'] ?? 'noreply@ianseo.net';
@@ -88,7 +85,6 @@ if (file_exists($configFile)) {
     }
 }
 
-// Fonction pour générer un token aléatoire
 function generateToken($length = 20) {
     $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
     $token = '';
@@ -98,7 +94,6 @@ function generateToken($length = 20) {
     return $token;
 }
 
-// Traitement des actions
 $message = '';
 $messageType = '';
 
@@ -165,9 +160,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-/**
- * Sauvegarde les compétitions dans le fichier config.php
- */
 function saveConfig($file, $competitions, $mailfrom) {
     $content = "<?php\n";
     $content .= "// Configuration globale pour l'auto-inscription IANSEO\n";
@@ -201,19 +193,16 @@ function saveConfig($file, $competitions, $mailfrom) {
     return file_put_contents($file, $content) !== false;
 }
 
-// Récupérer l'ID de compétition à éditer
 $editId = $_GET['edit'] ?? '';
 $editComp = $editId && isset($competitions[$editId]) ? $competitions[$editId] : null;
-
-// Générer un token par défaut pour les nouveaux ajouts
 $defaultToken = $editComp ? $editComp['token'] : generateToken();
 
-// Charger l'en-tête IANSEO
-include('../../Common/Templates/head.php');
+// Charger l'en-tête IANSEO - remonter 4 niveaux
+include(dirname(dirname(dirname(dirname(__FILE__)))) . '/Common/Templates/head.php');
 ?>
 
 <style>
-/* Override IANSEO styles - utiliser #Content pour plus de spécificité */
+/* Override IANSEO styles */
 #Content h1 {
     text-align: center;
     color: #333;
@@ -230,7 +219,6 @@ include('../../Common/Templates/head.php');
     padding-bottom: 10px !important;
 }
 
-/* Messages */
 #Content .message {
     padding: 15px;
     margin-bottom: 20px;
@@ -256,7 +244,6 @@ include('../../Common/Templates/head.php');
     color: #856404;
 }
 
-/* Config section */
 #Content .config-section {
     background: #f8f9fa;
     padding: 20px;
@@ -265,7 +252,6 @@ include('../../Common/Templates/head.php');
     border: 2px solid #e0e0e0;
 }
 
-/* Formulaires */
 #Content .form-group {
     margin-bottom: 20px;
 }
@@ -315,7 +301,6 @@ include('../../Common/Templates/head.php');
     font-size: 14px;
 }
 
-/* Boutons personnalisés */
 #Content .btn {
     padding: 12px 30px;
     border: none;
@@ -387,7 +372,6 @@ include('../../Common/Templates/head.php');
     background: #5a6268;
 }
 
-/* Tableau */
 #Content table {
     width: 100%;
     border-collapse: collapse;
@@ -414,7 +398,6 @@ include('../../Common/Templates/head.php');
     background: #f8f9ff;
 }
 
-/* Colonnes avec largeurs optimisées */
 #Content table th:nth-child(1), 
 #Content table td:nth-child(1) { 
     width: 60px;
@@ -446,7 +429,6 @@ include('../../Common/Templates/head.php');
     text-align: right;
 }
 
-/* Actions */
 #Content .actions {
     white-space: nowrap;
 }
@@ -460,7 +442,6 @@ include('../../Common/Templates/head.php');
     margin: 0;
 }
 
-/* Autres éléments */
 #Content .empty-state {
     text-align: center;
     padding: 40px;
@@ -542,7 +523,6 @@ function updateTournamentName() {
     </div>
 <?php endif; ?>
 
-<!-- Configuration globale -->
 <div class="config-section">
     <h2>⚙️ Configuration globale</h2>
     <form method="POST" action="">
@@ -698,4 +678,4 @@ function updateTournamentName() {
     </table>
 <?php endif; ?>
 
-<?php include('../../Common/Templates/tail.php'); ?>
+<?php include(dirname(dirname(dirname(dirname(__FILE__)))) . '/Common/Templates/tail.php'); ?>
