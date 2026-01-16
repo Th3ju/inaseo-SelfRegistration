@@ -434,6 +434,57 @@ p {
     width: 100%;
 }
 
+/* Styles pour la page d'administration */
+.container-admin {
+    max-width: 100%;
+    width: 100%;
+}
+
+.container-admin table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.container-admin th, 
+.container-admin td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.container-admin th {
+    background: #f8f9fa;
+    color: #333;
+    font-weight: 600;
+}
+
+.container-admin tr:hover {
+    background: #f8f9ff;
+}
+
+.container-admin .actions {
+    white-space: nowrap;
+}
+
+.container-admin code {
+    background: #f5f5f5;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+}
+
+.container-admin .url-link {
+    color: #667eea;
+    text-decoration: none;
+}
+
+.container-admin .url-link:hover {
+    text-decoration: underline;
+}
+
+
 /* Responsive */
 @media (max-width: 768px) {
     .container {
