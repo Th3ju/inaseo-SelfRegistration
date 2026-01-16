@@ -216,6 +216,50 @@ $defaultToken = $editComp ? $editComp['token'] : generateToken();
 .container {
     max-width: 95%;
 }
+table {
+    font-size: 15px;
+}
+
+th, td {
+    padding: 15px 12px;
+    vertical-align: middle;
+}
+
+/* Colonnes avec largeurs optimisées */
+th:nth-child(1), td:nth-child(1) { /* ID */
+    width: 60px;
+}
+
+th:nth-child(2), td:nth-child(2) { /* Nom */
+    width: 25%;
+}
+
+th:nth-child(3), td:nth-child(3) { /* Token */
+    width: 15%;
+}
+
+th:nth-child(4), td:nth-child(4) { /* Email */
+    width: 18%;
+}
+
+th:nth-child(5), td:nth-child(5) { /* URL */
+    width: 12%;
+}
+
+th:nth-child(6), td:nth-child(6) { /* Actions */
+    width: auto;
+    text-align: right;
+}
+
+/* Espacement des boutons d'action */
+.actions form {
+    display: inline-block;
+    margin-left: 5px;
+}
+
+.actions .btn {
+    margin: 0;
+}
     </style>
     <script>
         function generateNewToken() {
