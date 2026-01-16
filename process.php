@@ -146,7 +146,7 @@ function send_registration_email($user_email, $admin_email, $user_data, $tournam
 }
 
 // Fonction pour charger les configurations du fichier config.php
-function loadConfig($tournament_id = null) {
+function load_config($tournament_id = null) {
     $config_file = __DIR__ . '/config.php';
     
     if (!file_exists($config_file)) {
@@ -154,14 +154,17 @@ function loadConfig($tournament_id = null) {
     }
     
     // Définir la constante pour autoriser l'inclusion
-    define('CONFIG_ACCESS', true);
+    if (!defined('CONFIG_ACCESS')) {
+        define('CONFIG_ACCESS', true);
+    }
     
     // Charger le fichier config.php
     $config_data = require $config_file;
     
     // Structure de retour compatible avec l'ancien format
     $config = [
-        'mail_from' => $config_data['mail_from']
+        'mail_from' => $config_data['mail_from'],
+        'tournament' => null
     ];
     
     // Si un tournament_id est spécifié, retourner sa config
@@ -175,6 +178,7 @@ function loadConfig($tournament_id = null) {
     
     return $config;
 }
+
 
 
     
