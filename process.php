@@ -180,6 +180,7 @@ function load_config($tournament_id = null) {
 }
 
 
+
     
     $lines = file($config_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
     foreach ($lines as $line) {
