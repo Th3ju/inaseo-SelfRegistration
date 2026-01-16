@@ -515,9 +515,7 @@ function updateTournamentName() {
 
 <h1>🏹 Administration des Compétitions</h1>
 
-<div style="text-align: right; margin-bottom: 20px;">
-    <a href="github_update.php" class="btn btn-secondary">🔄 Mettre à jour depuis GitHub</a>
-</div>
+
 
 <?php if (isset($dbError)): ?>
     <div class="message warning">
@@ -684,6 +682,10 @@ function updateTournamentName() {
             <?php endforeach; ?>
         </tbody>
     </table>
+    <p>
+        <div style="text-align: right; margin-bottom: 20px;">
+    <a href="github_update.php" class="btn btn-secondary">🔄 Mettre à jour depuis GitHub</a>
+</div>
 <?php endif; ?>
 
 <?php 
