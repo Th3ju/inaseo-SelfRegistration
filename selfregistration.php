@@ -25,11 +25,21 @@ if (!isset($CFG->WDB) && isset($CFG->DBNAME)) {
 // Connexion à la base de données pour récupérer les tournois
 $conn = null;
 $availableTournaments = [];
+$dbError = null;
+
+// DEBUG - Afficher les variables de config
+$debugInfo = [
+    'WHOST' => isset($CFG->WHOST) ? $CFG->WHOST : 'NOT SET',
+    'WUSER' => isset($CFG->WUSER) ? $CFG->WUSER : 'NOT SET',
+    'WPASS' => isset($CFG->WPASS) ? 'SET' : 'NOT SET',
+    'WDB' => isset($CFG->WDB) ? $CFG->WDB : 'NOT SET',
+    'DBNAME' => isset($CFG->DBNAME) ? $CFG->DBNAME : 'NOT SET',
+];
 
 try {
     // Vérifier les variables nécessaires - COMME process.php
     if (!isset($CFG->WHOST) || !isset($CFG->WUSER) || !isset($CFG->WPASS) || !isset($CFG->WDB)) {
-        throw new Exception("Configuration IANSEO incomplète");
+        throw new Exception("Configuration IANSEO incomplète - Debug: " . json_encode($debugInfo));
     }
     
     $conn = mysqli_connect($CFG->WHOST, $CFG->WUSER, $CFG->WPASS, $CFG->WDB);
@@ -54,6 +64,7 @@ try {
 } catch (Exception $e) {
     $dbError = $e->getMessage();
 }
+
 
 // Chemin du fichier de configuration
 $configFile = __DIR__ . '/config.php';
