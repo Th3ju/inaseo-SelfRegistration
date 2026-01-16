@@ -381,13 +381,13 @@ echo "<h3>🔍 Vérification rapide :</h3>";
 echo "<div style='background: #f8f9fa; padding: 15px; border-radius: 5px;'>";
 
 $checkFiles = [
-    'index.html' => $currentDir . '/index.html',
-    'process.php' => $currentDir . '/process.php',
-    'js/script.js' => $currentDir . '/js/script.js',      // ← Corrigé
-    'css/style.css' => $currentDir . '/css/style.css',    // ← Corrigé
+    'index.html' => $currentDir . '../index.html',
+    'process.php' => $currentDir . '../process.php',
+    'js/script.js' => $currentDir . '/..js/script.js',      // ← Corrigé
+    'css/style.css' => $currentDir . '../css/style.css',    // ← Corrigé
     'selfregistration.php' => $currentDir . '/selfregistration.php',
-    'config.php (protégé)' => $currentDir . '/config.php',
-    'README.md' => $currentDir . '/README.md',
+    'config.php (protégé)' => $currentDir . '../config.php',
+    'README.md' => $currentDir . '../README.md',
 ];
 
 foreach ($checkFiles as $name => $path) {
