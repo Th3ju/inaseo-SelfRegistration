@@ -4,7 +4,7 @@
  * Emplacement : /var/www/html/Modules/Custom/SelfRegistration/selfregistration.php
  */
 
-// Charger la configuration Ianseo
+// Charger la configuration Ianseo - EXACTEMENT COMME process.php
 $ianseoRoot = dirname(__DIR__, 3);
 $configPath = $ianseoRoot . '/Common/config.inc.php';
 
@@ -12,57 +12,43 @@ if (!file_exists($configPath)) {
     die("Erreur : Configuration IANSEO introuvable à " . htmlspecialchars($configPath));
 }
 
-// Initialiser CFG global
+// Initialiser CFG global - EXACTEMENT COMME DANS process.php
 global $CFG;
 $CFG = new stdClass();
 include_once($configPath);
 
-// Initialiser CFG global
-global $CFG;
-$CFG = new stdClass();
-include_once($configPath);
-
-// DEBUG - À retirer après résolution du problème
-echo "<!-- DEBUG CONFIG IANSEO -->";
-echo "<!-- Config path: " . htmlspecialchars($configPath) . " -->";
-echo "<!-- File exists: " . (file_exists($configPath) ? 'YES' : 'NO') . " -->";
-echo "<!-- WHOST: " . (isset($CFG->WHOST) ? htmlspecialchars($CFG->WHOST) : 'NOT SET') . " -->";
-echo "<!-- WUSER: " . (isset($CFG->WUSER) ? htmlspecialchars($CFG->WUSER) : 'NOT SET') . " -->";
-echo "<!-- WPASS: " . (isset($CFG->WPASS) ? 'SET' : 'NOT SET') . " -->";
-echo "<!-- WDB: " . (isset($CFG->WDB) ? htmlspecialchars($CFG->WDB) : 'NOT SET') . " -->";
-echo "<!-- CFG type: " . gettype($CFG) . " -->";
-if (is_object($CFG)) {
-    echo "<!-- CFG properties: " . implode(', ', array_keys(get_object_vars($CFG))) . " -->";
+// Compatibilité : Créer WDB depuis DBNAME si nécessaire - COMME process.php
+if (!isset($CFG->WDB) && isset($CFG->DBNAME)) {
+    $CFG->WDB = $CFG->DBNAME;
 }
-echo "<!-- END DEBUG -->";
-
-
-
 
 // Connexion à la base de données pour récupérer les tournois
 $conn = null;
 $availableTournaments = [];
 
 try {
-    if (isset($CFG->WHOST, $CFG->WUSER, $CFG->WPASS, $CFG->WDB)) {
-        $conn = new mysqli($CFG->WHOST, $CFG->WUSER, $CFG->WPASS, $CFG->WDB);
-        if ($conn->connect_error) {
-            throw new Exception("Erreur de connexion : " . $conn->connect_error);
-        }
-        $conn->set_charset('utf8mb4');
-        
-        // Récupérer tous les tournois
-        $query = "SELECT ToId, ToName, ToWhenFrom, ToWhenTo FROM Tournament ORDER BY ToWhenFrom DESC, ToId DESC";
-        $result = $conn->query($query);
-        
-        if ($result) {
-            while ($row = $result->fetch_assoc()) {
-                $availableTournaments[$row['ToId']] = [
-                    'name' => $row['ToName'],
-                    'from' => $row['ToWhenFrom'],
-                    'to' => $row['ToWhenTo']
-                ];
-            }
+    // Vérifier les variables nécessaires - COMME process.php
+    if (!isset($CFG->WHOST) || !isset($CFG->WUSER) || !isset($CFG->WPASS) || !isset($CFG->WDB)) {
+        throw new Exception("Configuration IANSEO incomplète");
+    }
+    
+    $conn = mysqli_connect($CFG->WHOST, $CFG->WUSER, $CFG->WPASS, $CFG->WDB);
+    if (!$conn) {
+        throw new Exception("Erreur connexion DB: " . mysqli_connect_error());
+    }
+    mysqli_set_charset($conn, 'utf8mb4');
+    
+    // Récupérer tous les tournois
+    $query = "SELECT ToId, ToName, ToWhenFrom, ToWhenTo FROM Tournament ORDER BY ToWhenFrom DESC, ToId DESC";
+    $result = mysqli_query($conn, $query);
+    
+    if ($result) {
+        while ($row = mysqli_fetch_assoc($result)) {
+            $availableTournaments[$row['ToId']] = [
+                'name' => $row['ToName'],
+                'from' => $row['ToWhenFrom'],
+                'to' => $row['ToWhenTo']
+            ];
         }
     }
 } catch (Exception $e) {
