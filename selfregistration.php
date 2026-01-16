@@ -22,8 +22,8 @@ $conn = null;
 $availableTournaments = [];
 
 try {
-    if (isset($CFG->WHOST, $CFG->WUSER, $CFG->WPASS, $CFG->W_DB)) {
-        $conn = new mysqli($CFG->WHOST, $CFG->WUSER, $CFG->WPASS, $CFG->W_DB);
+    if (isset($CFG->WHOST, $CFG->WUSER, $CFG->WPASS, $CFG->WDB)) {
+        $conn = new mysqli($CFG->WHOST, $CFG->WUSER, $CFG->WPASS, $CFG->WDB);
         if ($conn->connect_error) {
             throw new Exception("Erreur de connexion : " . $conn->connect_error);
         }
