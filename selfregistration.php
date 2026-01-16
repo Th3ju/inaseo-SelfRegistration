@@ -1,6 +1,6 @@
 <?php
 // Page d'administration du module SelfRegistration
-require_once(dirname(__DIR__, 3) . '/Common/Fun_HTTP.inc.php');
+//require_once(dirname(__DIR__, 3) . '/Common/Fun_HTTP.inc.php');
 require_once(dirname(__DIR__, 3) . '/Common/Lib/CommonLib.php');
 
 // Vérification de l'authentification
