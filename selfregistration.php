@@ -17,6 +17,28 @@ global $CFG;
 $CFG = new stdClass();
 include_once($configPath);
 
+// Initialiser CFG global
+global $CFG;
+$CFG = new stdClass();
+include_once($configPath);
+
+// DEBUG - À retirer après résolution du problème
+echo "<!-- DEBUG CONFIG IANSEO -->";
+echo "<!-- Config path: " . htmlspecialchars($configPath) . " -->";
+echo "<!-- File exists: " . (file_exists($configPath) ? 'YES' : 'NO') . " -->";
+echo "<!-- WHOST: " . (isset($CFG->WHOST) ? htmlspecialchars($CFG->WHOST) : 'NOT SET') . " -->";
+echo "<!-- WUSER: " . (isset($CFG->WUSER) ? htmlspecialchars($CFG->WUSER) : 'NOT SET') . " -->";
+echo "<!-- WPASS: " . (isset($CFG->WPASS) ? 'SET' : 'NOT SET') . " -->";
+echo "<!-- WDB: " . (isset($CFG->WDB) ? htmlspecialchars($CFG->WDB) : 'NOT SET') . " -->";
+echo "<!-- CFG type: " . gettype($CFG) . " -->";
+if (is_object($CFG)) {
+    echo "<!-- CFG properties: " . implode(', ', array_keys(get_object_vars($CFG))) . " -->";
+}
+echo "<!-- END DEBUG -->";
+
+
+
+
 // Connexion à la base de données pour récupérer les tournois
 $conn = null;
 $availableTournaments = [];
