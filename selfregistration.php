@@ -17,6 +17,36 @@ global $CFG;
 $CFG = new stdClass();
 include_once($configPath);
 
+// Connexion à la base de données pour récupérer les tournois
+$conn = null;
+$availableTournaments = [];
+
+try {
+    if (isset($CFG->WHOST, $CFG->WUSER, $CFG->WPASS, $CFG->W_DB)) {
+        $conn = new mysqli($CFG->WHOST, $CFG->WUSER, $CFG->WPASS, $CFG->W_DB);
+        if ($conn->connect_error) {
+            throw new Exception("Erreur de connexion : " . $conn->connect_error);
+        }
+        $conn->set_charset('utf8mb4');
+        
+        // Récupérer tous les tournois
+        $query = "SELECT ToId, ToName, ToWhenFrom, ToWhenTo FROM Tournament ORDER BY ToWhenFrom DESC, ToId DESC";
+        $result = $conn->query($query);
+        
+        if ($result) {
+            while ($row = $result->fetch_assoc()) {
+                $availableTournaments[$row['ToId']] = [
+                    'name' => $row['ToName'],
+                    'from' => $row['ToWhenFrom'],
+                    'to' => $row['ToWhenTo']
+                ];
+            }
+        }
+    }
+} catch (Exception $e) {
+    $dbError = $e->getMessage();
+}
+
 // Chemin du fichier de configuration
 $configFile = __DIR__ . '/config.php';
 
@@ -34,17 +64,24 @@ if (file_exists($configFile)) {
     
     // Gérer les deux formats possibles
     if (is_array($loadedConfig) && isset($loadedConfig['tournaments'])) {
-        // Format: return $config avec $config['tournaments']
         $competitions = $loadedConfig['tournaments'];
         $mailfrom = $loadedConfig['mail_from'] ?? 'noreply@ianseo.net';
     } elseif (isset($tournaments)) {
-        // Format: $tournaments directement défini
         $competitions = $tournaments;
     } elseif (isset($config) && is_array($config) && isset($config['tournaments'])) {
-        // Format: $config['tournaments']
         $competitions = $config['tournaments'];
         $mailfrom = $config['mail_from'] ?? 'noreply@ianseo.net';
     }
+}
+
+// Fonction pour générer un token aléatoire
+function generateToken($length = 20) {
+    $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    $token = '';
+    for ($i = 0; $i < $length; $i++) {
+        $token .= $characters[random_int(0, strlen($characters) - 1)];
+    }
+    return $token;
 }
 
 // Traitement des actions
@@ -62,6 +99,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         if (empty($id) || empty($name) || empty($token)) {
             $message = 'Les champs ID, Nom et Token sont obligatoires.';
+            $messageType = 'error';
+        } elseif (!isset($availableTournaments[$id])) {
+            $message = 'Le tournoi sélectionné n\'existe pas dans IANSEO.';
             $messageType = 'error';
         } elseif (!empty($adminEmail) && !filter_var($adminEmail, FILTER_VALIDATE_EMAIL)) {
             $message = 'L\'adresse email admin n\'est pas valide.';
@@ -150,6 +190,9 @@ function saveConfig($file, $competitions, $mailfrom) {
 // Récupérer l'ID de compétition à éditer
 $editId = $_GET['edit'] ?? '';
 $editComp = $editId && isset($competitions[$editId]) ? $competitions[$editId] : null;
+
+// Générer un token par défaut pour les nouveaux ajouts
+$defaultToken = $editComp ? $editComp['token'] : generateToken();
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -214,6 +257,12 @@ $editComp = $editId && isset($competitions[$editId]) ? $competitions[$editId] : 
             color: #721c24;
         }
         
+        .message.warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            color: #856404;
+        }
+        
         .config-section {
             background: #f8f9fa;
             padding: 20px;
@@ -249,6 +298,15 @@ $editComp = $editId && isset($competitions[$editId]) ? $competitions[$editId] : 
         }
         
         .form-control[readonly] {
+            background-color: #f5f5f5;
+            cursor: not-allowed;
+        }
+        
+        select.form-control {
+            cursor: pointer;
+        }
+        
+        select.form-control[disabled] {
             background-color: #f5f5f5;
             cursor: not-allowed;
         }
@@ -308,6 +366,17 @@ $editComp = $editId && isset($competitions[$editId]) ? $competitions[$editId] : 
             background: #e0a800;
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(255, 193, 7, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
         }
         
         .btn-cancel {
@@ -376,6 +445,17 @@ $editComp = $editId && isset($competitions[$editId]) ? $competitions[$editId] : 
             text-decoration: underline;
         }
         
+        .token-input-group {
+            position: relative;
+        }
+        
+        .token-input-group .btn-secondary {
+            position: absolute;
+            right: 5px;
+            top: 5px;
+            padding: 8px 16px;
+        }
+        
         @media (max-width: 768px) {
             .container {
                 padding: 20px;
@@ -395,10 +475,36 @@ $editComp = $editId && isset($competitions[$editId]) ? $competitions[$editId] : 
             }
         }
     </style>
+    <script>
+        function generateNewToken() {
+            const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            let token = '';
+            for (let i = 0; i < 20; i++) {
+                token += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            document.getElementById('token').value = token;
+        }
+        
+        function updateTournamentName() {
+            const select = document.getElementById('id');
+            const nameInput = document.getElementById('name');
+            const selectedOption = select.options[select.selectedIndex];
+            
+            if (selectedOption.value && selectedOption.dataset.name) {
+                nameInput.value = selectedOption.dataset.name;
+            }
+        }
+    </script>
 </head>
 <body>
     <div class="container">
         <h1>🏹 Administration des Compétitions</h1>
+        
+        <?php if (isset($dbError)): ?>
+            <div class="message warning">
+                ⚠️ Attention : Impossible de se connecter à la base IANSEO. <?php echo htmlspecialchars($dbError); ?>
+            </div>
+        <?php endif; ?>
         
         <?php if ($message): ?>
             <div class="message <?php echo $messageType; ?>">
@@ -427,66 +533,89 @@ $editComp = $editId && isset($competitions[$editId]) ? $competitions[$editId] : 
         
         <h2><?php echo $editComp ? '✏️ Modifier la compétition' : '➕ Ajouter une compétition'; ?></h2>
         
-        <form method="POST" action="">
-            <input type="hidden" name="action" value="<?php echo $editComp ? 'edit' : 'add'; ?>">
-            
-            <div class="form-group">
-                <label for="id">ID de la compétition *</label>
-                <input type="text" 
-                       id="id" 
-                       name="id" 
-                       class="form-control" 
-                       value="<?php echo $editId ? htmlspecialchars($editId) : ''; ?>"
-                       <?php echo $editComp ? 'readonly' : ''; ?>
-                       placeholder="Ex: 124"
-                       required>
-                <small>Numéro du tournoi IANSEO (ToId dans la base de données)</small>
+        <?php if (empty($availableTournaments)): ?>
+            <div class="message warning">
+                ⚠️ Aucun tournoi trouvé dans IANSEO. Veuillez d'abord créer un tournoi dans IANSEO.
             </div>
-            
-            <div class="form-group">
-                <label for="name">Nom de la compétition *</label>
-                <input type="text" 
-                       id="name" 
-                       name="name" 
-                       class="form-control" 
-                       value="<?php echo $editComp ? htmlspecialchars($editComp['name'] ?? '') : ''; ?>"
-                       placeholder="Ex: Championnat Régional 2026"
-                       required>
-                <small>Nom affiché sur le formulaire d'inscription</small>
-            </div>
-            
-            <div class="form-group">
-                <label for="token">Token d'accès *</label>
-                <input type="text" 
-                       id="token" 
-                       name="token" 
-                       class="form-control" 
-                       value="<?php echo $editComp ? htmlspecialchars($editComp['token']) : ''; ?>"
-                       placeholder="Ex: abc123xyz789"
-                       required>
-                <small>Token de sécurité pour l'accès au formulaire (générez un token aléatoire)</small>
-            </div>
-            
-            <div class="form-group">
-                <label for="admin_email">Email administrateur</label>
-                <input type="email" 
-                       id="admin_email" 
-                       name="admin_email" 
-                       class="form-control" 
-                       value="<?php echo $editComp ? htmlspecialchars($editComp['admin_email'] ?? '') : ''; ?>"
-                       placeholder="Ex: admin@example.com">
-                <small>Email pour recevoir les notifications d'inscription (optionnel)</small>
-            </div>
-            
-            <div class="form-buttons">
-                <button type="submit" class="btn btn-primary">
-                    <?php echo $editComp ? '💾 Enregistrer' : '➕ Ajouter'; ?>
-                </button>
-                <?php if ($editComp): ?>
-                    <a href="selfregistration.php" class="btn btn-cancel">❌ Annuler</a>
-                <?php endif; ?>
-            </div>
-        </form>
+        <?php else: ?>
+            <form method="POST" action="">
+                <input type="hidden" name="action" value="<?php echo $editComp ? 'edit' : 'add'; ?>">
+                
+                <div class="form-group">
+                    <label for="id">Tournoi IANSEO *</label>
+                    <select id="id" 
+                            name="id" 
+                            class="form-control" 
+                            required
+                            <?php echo $editComp ? 'disabled' : ''; ?>
+                            onchange="updateTournamentName()">
+                        <option value="">-- Sélectionner un tournoi --</option>
+                        <?php foreach ($availableTournaments as $tid => $tdata): ?>
+                            <option value="<?php echo $tid; ?>" 
+                                    data-name="<?php echo htmlspecialchars($tdata['name']); ?>"
+                                    <?php echo ($editId == $tid) ? 'selected' : ''; ?>>
+                                [<?php echo $tid; ?>] <?php echo htmlspecialchars($tdata['name']); ?>
+                                <?php if ($tdata['from']): ?>
+                                    (<?php echo date('d/m/Y', strtotime($tdata['from'])); ?>)
+                                <?php endif; ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <?php if ($editComp): ?>
+                        <input type="hidden" name="id" value="<?php echo htmlspecialchars($editId); ?>">
+                    <?php endif; ?>
+                    <small>Sélectionnez le tournoi IANSEO à lier au formulaire d'inscription</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="name">Nom d'affichage *</label>
+                    <input type="text" 
+                           id="name" 
+                           name="name" 
+                           class="form-control" 
+                           value="<?php echo $editComp ? htmlspecialchars($editComp['name'] ?? '') : ''; ?>"
+                           placeholder="Sera rempli automatiquement"
+                           required>
+                    <small>Nom affiché sur le formulaire d'inscription (rempli automatiquement depuis IANSEO)</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="token">Token d'accès *</label>
+                    <div class="token-input-group">
+                        <input type="text" 
+                               id="token" 
+                               name="token" 
+                               class="form-control" 
+                               value="<?php echo htmlspecialchars($defaultToken); ?>"
+                               placeholder="Token de sécurité"
+                               required
+                               style="padding-right: 140px;">
+                        <button type="button" class="btn btn-secondary" onclick="generateNewToken()">🔄 Régénérer</button>
+                    </div>
+                    <small>Token de sécurité pour l'accès au formulaire (cliquez sur Régénérer pour un nouveau token)</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="admin_email">Email administrateur</label>
+                    <input type="email" 
+                           id="admin_email" 
+                           name="admin_email" 
+                           class="form-control" 
+                           value="<?php echo $editComp ? htmlspecialchars($editComp['admin_email'] ?? '') : ''; ?>"
+                           placeholder="Ex: admin@example.com">
+                    <small>Email pour recevoir les notifications d'inscription (optionnel)</small>
+                </div>
+                
+                <div class="form-buttons">
+                    <button type="submit" class="btn btn-primary">
+                        <?php echo $editComp ? '💾 Enregistrer' : '➕ Ajouter'; ?>
+                    </button>
+                    <?php if ($editComp): ?>
+                        <a href="selfregistration.php" class="btn btn-cancel">❌ Annuler</a>
+                    <?php endif; ?>
+                </div>
+            </form>
+        <?php endif; ?>
         
         <h2>📋 Liste des compétitions (<?php echo count($competitions); ?>)</h2>
         
@@ -510,7 +639,12 @@ $editComp = $editId && isset($competitions[$editId]) ? $competitions[$editId] : 
                     <?php foreach ($competitions as $id => $comp): ?>
                         <tr>
                             <td><code><?php echo htmlspecialchars($id); ?></code></td>
-                            <td><?php echo htmlspecialchars($comp['name'] ?? 'Non défini'); ?></td>
+                            <td>
+                                <?php echo htmlspecialchars($comp['name'] ?? 'Non défini'); ?>
+                                <?php if (!isset($availableTournaments[$id])): ?>
+                                    <br><small style="color: #dc3545;">⚠️ Tournoi introuvable dans IANSEO</small>
+                                <?php endif; ?>
+                            </td>
                             <td><code><?php echo htmlspecialchars($comp['token']); ?></code></td>
                             <td><?php echo !empty($comp['admin_email']) ? htmlspecialchars($comp['admin_email']) : '<em style="color: #999;">Non défini</em>'; ?></td>
                             <td>
