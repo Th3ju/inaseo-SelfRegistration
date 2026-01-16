@@ -1,17 +1,16 @@
 <?php
 /**
  * Page d'administration pour la gestion des compétitions
- * Emplacement : /var/www/html/Modules/Custom/SelfRegistration/selfregistration.php
+ * Emplacement : /var/www/html/Modules/Custom/SelfRegistration/admin/selfregistration.php
  */
 
-require_once(dirname(dirname(__FILE__)) . '/config.php');
+require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
 
 // Charger Fun_Various.inc.php
 $possiblePaths = array(
-    'Common/Fun_Various.inc.php',
-    '../Common/Fun_Various.inc.php',
-    dirname(dirname(__FILE__)) . '/Common/Fun_Various.inc.php',
-    dirname(__FILE__) . '/../Common/Fun_Various.inc.php'
+    '../../Common/Fun_Various.inc.php',
+    '../../../Common/Fun_Various.inc.php',
+    dirname(dirname(dirname(__FILE__))) . '/Common/Fun_Various.inc.php',
 );
 
 foreach ($possiblePaths as $path) {
@@ -62,8 +61,8 @@ try {
     $dbError = $e->getMessage();
 }
 
-// Chemin du fichier de configuration
-$configFile = __DIR__ . './config.php';
+// Chemin du fichier de configuration - remonter au dossier parent
+$configFile = dirname(__DIR__) . '/config.php';
 
 // Initialiser les compétitions
 $competitions = [];
@@ -210,7 +209,7 @@ $editComp = $editId && isset($competitions[$editId]) ? $competitions[$editId] : 
 $defaultToken = $editComp ? $editComp['token'] : generateToken();
 
 // Charger l'en-tête IANSEO
-include('Common/Templates/head.php');
+include('../../Common/Templates/head.php');
 ?>
 
 <style>
@@ -390,7 +389,7 @@ include('Common/Templates/head.php');
 
 /* Tableau */
 #Content table {
-    width: 90%;
+    width: 100%;
     border-collapse: collapse;
     margin-top: 20px;
     font-size: 15px;
@@ -527,7 +526,9 @@ function updateTournamentName() {
 
 <h1>🏹 Administration des Compétitions</h1>
 
-
+<div style="text-align: right; margin-bottom: 20px;">
+    <a href="github_update.php" class="btn btn-secondary">🔄 Mettre à jour depuis GitHub</a>
+</div>
 
 <?php if (isset($dbError)): ?>
     <div class="message warning">
@@ -677,7 +678,7 @@ function updateTournamentName() {
                     <td><code><?php echo htmlspecialchars($comp['token']); ?></code></td>
                     <td><?php echo !empty($comp['admin_email']) ? htmlspecialchars($comp['admin_email']) : '<em style="color: #999;">Non défini</em>'; ?></td>
                     <td>
-                        <a href="index.html?tournament=<?php echo urlencode($id); ?>&token=<?php echo urlencode($comp['token']); ?>" 
+                        <a href="../index.html?tournament=<?php echo urlencode($id); ?>&token=<?php echo urlencode($comp['token']); ?>" 
                            target="_blank"
                            class="url-link">
                             🔗 Ouvrir le formulaire
@@ -695,10 +696,6 @@ function updateTournamentName() {
             <?php endforeach; ?>
         </tbody>
     </table>
-<p>
-    <div style="text-align: left; margin-bottom: 20px;">
-    <a href="github_update.php" class="btn btn-secondary">🔄 Mettre à jour depuis GitHub</a>
-</div>
 <?php endif; ?>
 
-<?php include('Common/Templates/tail.php'); ?>
+<?php include('../../Common/Templates/tail.php'); ?>
