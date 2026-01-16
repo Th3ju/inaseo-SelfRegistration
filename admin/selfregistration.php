@@ -63,7 +63,7 @@ try {
 }
 
 // Chemin du fichier de configuration
-$configFile = __DIR__ . '/config.php';
+$configFile = __DIR__ . './config.php';
 
 // Initialiser les compétitions
 $competitions = [];
