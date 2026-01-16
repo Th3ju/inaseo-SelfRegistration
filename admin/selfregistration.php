@@ -4,7 +4,7 @@
  * Emplacement : /var/www/html/Modules/Custom/SelfRegistration/selfregistration.php
  */
 
-require_once(dirname(dirname(__FILE__)) . '../config.php');
+require_once(dirname(dirname(__FILE__)) . '/config.php');
 
 // Charger Fun_Various.inc.php
 $possiblePaths = array(
