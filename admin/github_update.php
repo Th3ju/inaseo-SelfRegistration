@@ -3,6 +3,7 @@
  * Script de mise à jour automatique depuis GitHub
  * Module SelfRegistration pour IANSEO
  * GitHub: https://github.com/Th3ju/inaseo-SelfRegistration
+ * Emplacement : /Modules/Custom/SelfRegistration/admin/github_update.php
  */
 
 // Fonction pour afficher des messages
@@ -19,8 +20,6 @@ function logMsg($msg, $type = 'info') {
     echo "</div>";
     flush();
 }
-
-$moduleDir = dirname(__DIR__); // Dossier parent = SelfRegistration
 
 ?>
 <!DOCTYPE html>
@@ -92,11 +91,15 @@ $moduleDir = dirname(__DIR__); // Dossier parent = SelfRegistration
 <div class="container">
 
 <?php
+// IMPORTANT : Définir le dossier module (racine SelfRegistration)
+// Ce script est dans admin/, donc on remonte d'un niveau
+$moduleDir = realpath(dirname(__DIR__));
+
 // Vérifier si l'action est confirmée
 if (!isset($_GET['confirm'])) {
     ?>
     <h1>🔄 Mise à jour du module SelfRegistration</h1>
-    
+
     <div class="info-box">
         <strong>📦 Source GitHub :</strong> <code>https://github.com/Th3ju/inaseo-SelfRegistration</code><br>
         <strong>🎯 Branche :</strong> <code>main</code><br>
@@ -107,7 +110,7 @@ if (!isset($_GET['confirm'])) {
         <strong>⚠️ Attention :</strong>
         <ul>
             <li>Cette mise à jour va <strong>remplacer tous les fichiers du module</strong> par la dernière version GitHub</li>
-            <li>Les fichiers <code>config.php</code> (configurations des compétitions) seront <strong>préservés</strong></li>
+            <li>Le fichier <code>config.php</code> (configurations des compétitions) sera <strong>préservé</strong></li>
             <li>Assurez-vous d'avoir une <strong>sauvegarde</strong> avant de continuer</li>
             <li>La mise à jour nécessite environ 30 secondes</li>
         </ul>
@@ -122,10 +125,10 @@ if (!isset($_GET['confirm'])) {
     <ul>
         <li><code>index.html</code> - Formulaire d'inscription</li>
         <li><code>process.php</code> - Traitement des inscriptions</li>
-        <li><code>script.js</code> - Scripts JavaScript</li>
-        <li><code>style.css</code> - Styles CSS</li>
-        <li><code>selfregistration.php</code> - Page d'administration</li>
-        <li><code>github_update.php</code> - Ce script de mise à jour</li>
+        <li><code>js/script.js</code> - Scripts JavaScript</li>
+        <li><code>css/style.css</code> - Styles CSS</li>
+        <li><code>admin/selfregistration.php</code> - Page d'administration</li>
+        <li><code>admin/github_update.php</code> - Ce script de mise à jour</li>
         <li><code>README.md</code> - Documentation</li>
     </ul>
 
@@ -153,20 +156,19 @@ echo "</div>";
 // Configuration
 $githubRepo = "Th3ju/inaseo-SelfRegistration";
 $branch = "main";
-$currentDir = __DIR__;
 
-logMsg("📁 Dossier du module : " . $currentDir);
+logMsg("📁 Dossier du module : " . $moduleDir);
 
 // Vérifier les permissions
-if (!is_writable($currentDir)) {
+if (!is_writable($moduleDir)) {
     logMsg("❌ Le dossier n'est pas accessible en écriture", 'error');
-    
+
     if (!$isWindows) {
         echo "<div class='warning-box'>";
         echo "<strong>Sur Linux, exécutez :</strong><br>";
-        echo "<code>chmod -R 755 " . htmlspecialchars($currentDir) . "</code><br><br>";
+        echo "<code>chmod -R 755 " . htmlspecialchars($moduleDir) . "</code><br><br>";
         echo "<strong>Si nécessaire :</strong><br>";
-        echo "<code>chown -R www-data:www-data " . htmlspecialchars($currentDir) . "</code>";
+        echo "<code>chown -R www-data:www-data " . htmlspecialchars($moduleDir) . "</code>";
         echo "</div>";
     }
     exit;
@@ -189,11 +191,11 @@ if (function_exists('curl_init')) {
     curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
     curl_setopt($ch, CURLOPT_TIMEOUT, 60);
     curl_setopt($ch, CURLOPT_USERAGENT, 'IANSEO-SelfRegistration-Updater');
-    
+
     $zipContent = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
-    
+
     if ($httpCode !== 200 || $zipContent === false) {
         logMsg("Échec cURL (code $httpCode)", 'error');
         $zipContent = false;
@@ -214,9 +216,9 @@ if ($zipContent === false && ini_get('allow_url_fopen')) {
             'timeout' => 60
         ]
     ]);
-    
+
     $zipContent = @file_get_contents($zipUrl, false, $context);
-    
+
     if ($zipContent !== false) {
         logMsg("Téléchargement réussi via file_get_contents (" . strlen($zipContent) . " octets)", 'success');
     } else {
@@ -266,7 +268,7 @@ if (!$extractResult) {
 logMsg("✅ Archive extraite", 'success');
 @unlink($tempZip);
 
-// 3. Trouver le dossier extrait
+// 3. Trouver le dossier extrait (GitHub crée un dossier inaseo-SelfRegistration-main)
 $items = scandir($tempDir);
 $sourceDir = '';
 foreach ($items as $item) {
@@ -281,10 +283,10 @@ if (empty($sourceDir)) {
     exit;
 }
 
-logMsg("📂 Dossier source : " . basename($sourceDir), 'info');
+logMsg("📂 Dossier source trouvé : " . basename($sourceDir), 'info');
 
 // 4. Copier les fichiers avec exclusion
-logMsg("📝 Copie des fichiers (fichiers protégés exclus)...");
+logMsg("📝 Copie des fichiers vers " . $moduleDir . "...");
 
 $count = 0;
 $errorCount = 0;
@@ -300,22 +302,34 @@ $iterator = new RecursiveIteratorIterator(
 
 foreach ($iterator as $item) {
     if ($item->isFile()) {
+        // Calculer le chemin relatif depuis le dossier source
         $relativePath = substr($item->getPathname(), strlen($sourceDir));
-        $destPath = $currentDir . $relativePath;
+
+        // Normaliser les séparateurs (Windows)
+        $relativePath = str_replace('\', '/', $relativePath);
+
+        // Construire le chemin de destination dans $moduleDir
+        $destPath = $moduleDir . $relativePath;
         $filename = basename($destPath);
-        
+
+        // Debug : afficher les 3 premiers fichiers copiés
+        if ($count < 3) {
+            logMsg("Debug: $relativePath -> $destPath", 'info');
+        }
+
         // Vérifier si c'est un fichier protégé qui existe déjà
         if (in_array($filename, $protectedFiles) && file_exists($destPath)) {
             logMsg("🔒 Fichier protégé conservé : $filename", 'info');
             $skippedCount++;
             continue;
         }
-        
+
         // Ignorer les fichiers .git
-        if (strpos($relativePath, '/.git') !== false) {
+        if (strpos($relativePath, '/.git') !== false || strpos($relativePath, '\.git') !== false) {
             continue;
         }
-        
+
+        // Créer le répertoire de destination si nécessaire
         $destDir = dirname($destPath);
         if (!is_dir($destDir)) {
             if (!mkdir($destDir, 0755, true)) {
@@ -324,16 +338,16 @@ foreach ($iterator as $item) {
                 continue;
             }
         }
-        
+
         // Copie du fichier
         if (copy($item->getPathname(), $destPath)) {
             $count++;
-            
+
             // Ajuster les permissions sur Linux
             if (!$isWindows) {
                 @chmod($destPath, 0644);
             }
-            
+
             // Afficher progression tous les 5 fichiers
             if ($count % 5 === 0) {
                 logMsg("$count fichiers copiés...");
@@ -383,13 +397,14 @@ echo "<h3>🔍 Vérification rapide :</h3>";
 echo "<div style='background: #f8f9fa; padding: 15px; border-radius: 5px;'>";
 
 $checkFiles = [
-    'index.html' => $currentDir . '../index.html',
-    'process.php' => $currentDir . '../process.php',
-    'js/script.js' => $currentDir . '/..js/script.js',      // ← Corrigé
-    'css/style.css' => $currentDir . '../css/style.css',    // ← Corrigé
-    'selfregistration.php' => $currentDir . '/selfregistration.php',
-    'config.php (protégé)' => $currentDir . '../config.php',
-    'README.md' => $currentDir . '../README.md',
+    'index.html' => $moduleDir . '/index.html',
+    'process.php' => $moduleDir . '/process.php',
+    'js/script.js' => $moduleDir . '/js/script.js',
+    'css/style.css' => $moduleDir . '/css/style.css',
+    'admin/selfregistration.php' => $moduleDir . '/admin/selfregistration.php',
+    'admin/github_update.php' => $moduleDir . '/admin/github_update.php',
+    'config.php (protégé)' => $moduleDir . '/config.php',
+    'README.md' => $moduleDir . '/README.md',
 ];
 
 foreach ($checkFiles as $name => $path) {
@@ -401,7 +416,7 @@ foreach ($checkFiles as $name => $path) {
         if (strpos($name, 'protégé') === false) {
             echo "<div style='padding: 5px 0; color: #dc3545;'>❌ <strong>$name</strong> - absent</div>";
         } else {
-            echo "<div style='padding: 5px 0; color: #6c757d;'>ℹ️ <strong>$name</strong> - non présent dans la source</div>";
+            echo "<div style='padding: 5px 0; color: #6c757d;'>ℹ️ <strong>$name</strong> - non présent</div>";
         }
     }
 }
