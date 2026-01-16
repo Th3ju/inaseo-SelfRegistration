@@ -11,7 +11,6 @@ require_once(dirname(dirname(dirname(dirname(__FILE__)))) . '/config.php');
 $possiblePaths = array(
     dirname(dirname(dirname(dirname(__FILE__)))) . '/Common/Fun_Various.inc.php',
     '../../../../Common/Fun_Various.inc.php',
-    '../../../Common/Fun_Various.inc.php',
 );
 
 foreach ($possiblePaths as $path) {
@@ -197,8 +196,17 @@ $editId = $_GET['edit'] ?? '';
 $editComp = $editId && isset($competitions[$editId]) ? $competitions[$editId] : null;
 $defaultToken = $editComp ? $editComp['token'] : generateToken();
 
-// Charger l'en-tête IANSEO - remonter 4 niveaux
-include(dirname(dirname(dirname(dirname(__FILE__)))) . '/Common/Templates/head.php');
+// IMPORTANT : Sauvegarder le répertoire actuel et changer vers la racine IANSEO
+// pour que les chemins relatifs dans head.php fonctionnent correctement
+$originalDir = getcwd();
+$ianseoRoot = dirname(dirname(dirname(dirname(__FILE__))));
+chdir($ianseoRoot);
+
+// Charger l'en-tête IANSEO
+include('Common/Templates/head.php');
+
+// Revenir au répertoire d'origine
+chdir($originalDir);
 ?>
 
 <style>
@@ -678,4 +686,10 @@ function updateTournamentName() {
     </table>
 <?php endif; ?>
 
-<?php include(dirname(dirname(dirname(dirname(__FILE__)))) . '/Common/Templates/tail.php'); ?>
+<?php 
+// Changer vers la racine IANSEO pour le tail.php aussi
+chdir($ianseoRoot);
+include('Common/Templates/tail.php'); 
+chdir($originalDir);
+?>
+
