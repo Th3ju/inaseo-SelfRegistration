@@ -695,7 +695,8 @@ function updateTournamentName() {
             <?php endforeach; ?>
         </tbody>
     </table>
-    <div style="text-align: right; margin-bottom: 20px;">
+<p>
+    <div style="text-align: left; margin-bottom: 20px;">
     <a href="github_update.php" class="btn btn-secondary">🔄 Mettre à jour depuis GitHub</a>
 </div>
 <?php endif; ?>
