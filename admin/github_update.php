@@ -314,7 +314,8 @@ foreach ($iterator as $item) {
 
         // Debug : afficher les 3 premiers fichiers copiés
         if ($count < 3) {
-            logMsg("Debug: $relativePath -> $destPath", 'info');
+            $debugMsg = "Debug: " . $relativePath . " vers " . $destPath;
+            logMsg($debugMsg, 'info');
         }
 
         // Vérifier si c'est un fichier protégé qui existe déjà
