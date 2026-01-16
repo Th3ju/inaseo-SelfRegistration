@@ -212,7 +212,7 @@ function load_config($tournament_id = null) {
     }
     
     return $config;
-}
+
 
 // Chemin IANSEO
 $ianseo_root = dirname(__DIR__);
