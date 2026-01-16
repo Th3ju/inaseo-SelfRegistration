@@ -4,12 +4,28 @@
  * Emplacement : /var/www/html/Modules/Custom/SelfRegistration/selfregistration.php
  */
 
+// Charger la configuration Ianseo
+$ianseoRoot = dirname(__DIR__, 3);
+$configPath = $ianseoRoot . '/Common/config.inc.php';
+
+if (!file_exists($configPath)) {
+    die("Erreur : Configuration IANSEO introuvable à " . htmlspecialchars($configPath));
+}
+
+// Initialiser CFG global
+global $CFG;
+$CFG = new stdClass();
+include_once($configPath);
+
 // Chemin du fichier de configuration
 $configFile = __DIR__ . '/config.php';
 
 // Initialiser les compétitions
 $competitions = [];
 if (file_exists($configFile)) {
+    if (!defined('CONFIG_ACCESS')) {
+        define('CONFIG_ACCESS', true);
+    }
     include $configFile;
 }
 
@@ -24,21 +40,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id = trim($_POST['id'] ?? '');
         $name = trim($_POST['name'] ?? '');
         $token = trim($_POST['token'] ?? '');
+        $adminEmail = trim($_POST['admin_email'] ?? '');
         
         if (empty($id) || empty($name) || empty($token)) {
-            $message = 'Tous les champs sont obligatoires.';
+            $message = 'Les champs ID, Nom et Token sont obligatoires.';
+            $messageType = 'error';
+        } elseif (!empty($adminEmail) && !filter_var($adminEmail, FILTER_VALIDATE_EMAIL)) {
+            $message = 'L\'adresse email admin n\'est pas valide.';
             $messageType = 'error';
         } else {
             $competitions[$id] = [
                 'name' => $name,
-                'token' => $token
+                'token' => $token,
+                'adminemail' => $adminEmail
             ];
             
             if (saveConfig($configFile, $competitions)) {
                 $message = $action === 'add' ? 'Compétition ajoutée avec succès.' : 'Compétition modifiée avec succès.';
                 $messageType = 'success';
             } else {
-                $message = 'Erreur lors de l\'enregistrement.';
+                $message = 'Erreur lors de l\'enregistrement. Vérifiez les permissions d\'écriture.';
                 $messageType = 'error';
             }
         }
@@ -65,13 +86,21 @@ function saveConfig($file, $competitions) {
     $content .= "/**\n";
     $content .= " * Configuration des compétitions\n";
     $content .= " * Généré automatiquement - Ne pas modifier manuellement\n";
+    $content .= " * Dernière modification : " . date('Y-m-d H:i:s') . "\n";
     $content .= " */\n\n";
-    $content .= "\$competitions = [\n";
+    $content .= "if (!defined('CONFIG_ACCESS')) {\n";
+    $content .= "    die('Accès direct interdit');\n";
+    $content .= "}\n\n";
+    $content .= "// Adresse email par défaut pour l'envoi des confirmations\n";
+    $content .= "\$mailfrom = 'noreply@ianseo.net';\n\n";
+    $content .= "// Configuration des tournois\n";
+    $content .= "\$tournaments = [\n";
     
     foreach ($competitions as $id => $comp) {
         $content .= "    " . var_export($id, true) . " => [\n";
         $content .= "        'name' => " . var_export($comp['name'], true) . ",\n";
         $content .= "        'token' => " . var_export($comp['token'], true) . ",\n";
+        $content .= "        'adminemail' => " . var_export($comp['adminemail'] ?? '', true) . ",\n";
         $content .= "    ],\n";
     }
     
@@ -105,7 +134,7 @@ $editComp = $editId && isset($competitions[$editId]) ? $competitions[$editId] : 
         }
         
         .container {
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 0 auto;
             background: white;
             border-radius: 12px;
@@ -171,6 +200,18 @@ $editComp = $editId && isset($competitions[$editId]) ? $competitions[$editId] : 
             outline: none;
             border-color: #667eea;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .form-control[readonly] {
+            background-color: #f5f5f5;
+            cursor: not-allowed;
+        }
+        
+        small {
+            display: block;
+            margin-top: 5px;
+            color: #999;
+            font-size: 14px;
         }
         
         .btn {
@@ -271,6 +312,42 @@ $editComp = $editId && isset($competitions[$editId]) ? $competitions[$editId] : 
             gap: 10px;
             margin-top: 20px;
         }
+        
+        code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        
+        .url-link {
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        .url-link:hover {
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            table {
+                font-size: 14px;
+            }
+            
+            th, td {
+                padding: 8px;
+            }
+            
+            .btn {
+                padding: 10px 20px;
+                font-size: 14px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -296,9 +373,9 @@ $editComp = $editId && isset($competitions[$editId]) ? $competitions[$editId] : 
                        class="form-control" 
                        value="<?php echo $editId ? htmlspecialchars($editId) : ''; ?>"
                        <?php echo $editComp ? 'readonly' : ''; ?>
-                       placeholder="Ex: tournament_2026"
+                       placeholder="Ex: 15"
                        required>
-                <small style="color: #999;">Identifiant unique (utilisé dans l'URL)</small>
+                <small>Numéro du tournoi IANSEO (ToId dans la base de données)</small>
             </div>
             
             <div class="form-group">
@@ -310,6 +387,7 @@ $editComp = $editId && isset($competitions[$editId]) ? $competitions[$editId] : 
                        value="<?php echo $editComp ? htmlspecialchars($editComp['name']) : ''; ?>"
                        placeholder="Ex: Championnat Régional 2026"
                        required>
+                <small>Nom affiché sur le formulaire d'inscription</small>
             </div>
             
             <div class="form-group">
@@ -321,7 +399,18 @@ $editComp = $editId && isset($competitions[$editId]) ? $competitions[$editId] : 
                        value="<?php echo $editComp ? htmlspecialchars($editComp['token']) : ''; ?>"
                        placeholder="Ex: abc123xyz789"
                        required>
-                <small style="color: #999;">Token de sécurité pour l'accès au formulaire</small>
+                <small>Token de sécurité pour l'accès au formulaire (générez un token aléatoire)</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="admin_email">Email administrateur</label>
+                <input type="email" 
+                       id="admin_email" 
+                       name="admin_email" 
+                       class="form-control" 
+                       value="<?php echo $editComp ? htmlspecialchars($editComp['adminemail'] ?? '') : ''; ?>"
+                       placeholder="Ex: admin@example.com">
+                <small>Email pour recevoir les notifications d'inscription (optionnel)</small>
             </div>
             
             <div class="form-buttons">
@@ -347,6 +436,7 @@ $editComp = $editId && isset($competitions[$editId]) ? $competitions[$editId] : 
                         <th>ID</th>
                         <th>Nom</th>
                         <th>Token</th>
+                        <th>Email Admin</th>
                         <th>URL d'inscription</th>
                         <th class="actions">Actions</th>
                     </tr>
@@ -357,14 +447,13 @@ $editComp = $editId && isset($competitions[$editId]) ? $competitions[$editId] : 
                             <td><code><?php echo htmlspecialchars($id); ?></code></td>
                             <td><?php echo htmlspecialchars($comp['name']); ?></td>
                             <td><code><?php echo htmlspecialchars($comp['token']); ?></code></td>
+                            <td><?php echo !empty($comp['adminemail']) ? htmlspecialchars($comp['adminemail']) : '<em style="color: #999;">Non défini</em>'; ?></td>
                             <td>
-                                <small>
-                                    <a href="index.html?tournament_id=<?php echo urlencode($id); ?>&token=<?php echo urlencode($comp['token']); ?>" 
-                                       target="_blank"
-                                       style="color: #667eea;">
-                                        Lien d'inscription →
-                                    </a>
-                                </small>
+                                <a href="index.html?tournament_id=<?php echo urlencode($id); ?>&token=<?php echo urlencode($comp['token']); ?>" 
+                                   target="_blank"
+                                   class="url-link">
+                                    🔗 Ouvrir le formulaire
+                                </a>
                             </td>
                             <td class="actions">
                                 <a href="?edit=<?php echo urlencode($id); ?>" class="btn btn-warning">✏️ Modifier</a>
