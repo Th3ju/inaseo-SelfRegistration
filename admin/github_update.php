@@ -306,9 +306,10 @@ foreach ($iterator as $item) {
         $relativePath = substr($item->getPathname(), strlen($sourceDir));
 
         // Normaliser les séparateurs (Windows)
-        $relativePath = str_replace('\', '/', $relativePath);
+        $relativePath = str_replace('\\', '/', $relativePath);
 
         // Construire le chemin de destination dans $moduleDir
+
         $destPath = $moduleDir . $relativePath;
         $filename = basename($destPath);
 
