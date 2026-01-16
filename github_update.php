@@ -1,0 +1,417 @@
+<?php
+/**
+ * Script de mise à jour automatique depuis GitHub
+ * Module SelfRegistration pour IANSEO
+ * GitHub: https://github.com/Th3ju/inaseo-SelfRegistration
+ */
+
+// Fonction pour afficher des messages
+function logMsg($msg, $type = 'info') {
+    $colors = [
+        'success' => '#28a745',
+        'error' => '#dc3545',
+        'warning' => '#ffc107',
+        'info' => '#17a2b8'
+    ];
+    $color = $colors[$type] ?? $colors['info'];
+    echo "<div style='padding: 8px 12px; margin: 5px 0; background: " . $color . "22; border-left: 4px solid $color; color: #333;'>";
+    echo htmlspecialchars($msg);
+    echo "</div>";
+    flush();
+}
+
+?>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Mise à jour SelfRegistration depuis GitHub</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #667eea;
+            margin-top: 0;
+        }
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .info-box {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 30px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        .btn:hover {
+            background: #5568d3;
+        }
+        .btn-secondary {
+            background: #6c757d;
+        }
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+<?php
+// Vérifier si l'action est confirmée
+if (!isset($_GET['confirm'])) {
+    ?>
+    <h1>🔄 Mise à jour du module SelfRegistration</h1>
+    
+    <div class="info-box">
+        <strong>📦 Source GitHub :</strong> <code>https://github.com/Th3ju/inaseo-SelfRegistration</code><br>
+        <strong>🎯 Branche :</strong> <code>main</code><br>
+        <strong>📁 Destination :</strong> <code><?php echo htmlspecialchars(__DIR__); ?></code>
+    </div>
+
+    <div class="warning-box">
+        <strong>⚠️ Attention :</strong>
+        <ul>
+            <li>Cette mise à jour va <strong>remplacer tous les fichiers du module</strong> par la dernière version GitHub</li>
+            <li>Les fichiers <code>config.php</code> (configurations des compétitions) seront <strong>préservés</strong></li>
+            <li>Assurez-vous d'avoir une <strong>sauvegarde</strong> avant de continuer</li>
+            <li>La mise à jour nécessite environ 30 secondes</li>
+        </ul>
+    </div>
+
+    <h3>📋 Fichiers qui seront protégés (non écrasés) :</h3>
+    <ul>
+        <li><code>config.php</code> - Vos configurations de compétitions et tokens</li>
+    </ul>
+
+    <h3>✅ Fichiers qui seront mis à jour :</h3>
+    <ul>
+        <li><code>index.html</code> - Formulaire d'inscription</li>
+        <li><code>process.php</code> - Traitement des inscriptions</li>
+        <li><code>script.js</code> - Scripts JavaScript</li>
+        <li><code>style.css</code> - Styles CSS</li>
+        <li><code>selfregistration.php</code> - Page d'administration</li>
+        <li><code>github_update.php</code> - Ce script de mise à jour</li>
+        <li><code>README.md</code> - Documentation</li>
+    </ul>
+
+    <div style="margin-top: 30px; text-align: center;">
+        <a href="?confirm=1" class="btn">🚀 Lancer la mise à jour</a>
+        <a href="selfregistration.php" class="btn btn-secondary">❌ Annuler</a>
+    </div>
+    <?php
+    exit;
+}
+
+// === DÉBUT DE LA MISE À JOUR ===
+?>
+
+<h1>🔄 Mise à jour en cours...</h1>
+
+<?php
+
+// Détection du système
+$isWindows = (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN');
+echo "<div style='background: #f8f9fa; padding: 10px; margin: 15px 0; border-radius: 5px;'>";
+echo "<strong>🖥️ Système :</strong> " . ($isWindows ? 'Windows' : 'Linux');
+echo "</div>";
+
+// Configuration
+$githubRepo = "Th3ju/inaseo-SelfRegistration";
+$branch = "main";
+$currentDir = __DIR__;
+
+logMsg("📁 Dossier du module : " . $currentDir);
+
+// Vérifier les permissions
+if (!is_writable($currentDir)) {
+    logMsg("❌ Le dossier n'est pas accessible en écriture", 'error');
+    
+    if (!$isWindows) {
+        echo "<div class='warning-box'>";
+        echo "<strong>Sur Linux, exécutez :</strong><br>";
+        echo "<code>chmod -R 755 " . htmlspecialchars($currentDir) . "</code><br><br>";
+        echo "<strong>Si nécessaire :</strong><br>";
+        echo "<code>chown -R www-data:www-data " . htmlspecialchars($currentDir) . "</code>";
+        echo "</div>";
+    }
+    exit;
+}
+
+logMsg("✅ Permissions OK", 'success');
+
+// 1. Télécharger le ZIP
+logMsg("📥 Téléchargement depuis GitHub...");
+$zipUrl = "https://github.com/{$githubRepo}/archive/{$branch}.zip";
+$zipContent = false;
+
+// Essayer cURL d'abord
+if (function_exists('curl_init')) {
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $zipUrl);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+    curl_setopt($ch, CURLOPT_USERAGENT, 'IANSEO-SelfRegistration-Updater');
+    
+    $zipContent = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    
+    if ($httpCode !== 200 || $zipContent === false) {
+        logMsg("Échec cURL (code $httpCode)", 'error');
+        $zipContent = false;
+    } else {
+        logMsg("Téléchargement réussi via cURL (" . strlen($zipContent) . " octets)", 'success');
+    }
+}
+
+// Fallback: file_get_contents
+if ($zipContent === false && ini_get('allow_url_fopen')) {
+    logMsg("Essai avec file_get_contents...", 'warning');
+    $context = stream_context_create([
+        'ssl' => [
+            'verify_peer' => false,
+            'verify_peer_name' => false,
+        ],
+        'http' => [
+            'timeout' => 60
+        ]
+    ]);
+    
+    $zipContent = @file_get_contents($zipUrl, false, $context);
+    
+    if ($zipContent !== false) {
+        logMsg("Téléchargement réussi via file_get_contents (" . strlen($zipContent) . " octets)", 'success');
+    } else {
+        logMsg("Échec du téléchargement", 'error');
+    }
+}
+
+if ($zipContent === false) {
+    logMsg("❌ Impossible de télécharger. Vérifiez la connexion Internet.", 'error');
+    echo "<div style='margin-top: 20px; text-align: center;'>";
+    echo "<a href='selfregistration.php' class='btn btn-secondary'>← Retour</a>";
+    echo "</div>";
+    exit;
+}
+
+// 2. Extraire
+logMsg("📦 Extraction de l'archive...");
+$tempZip = tempnam(sys_get_temp_dir(), 'selfregistration_') . '.zip';
+file_put_contents($tempZip, $zipContent);
+
+if (!class_exists('ZipArchive')) {
+    logMsg("❌ Extension ZipArchive non disponible", 'error');
+    @unlink($tempZip);
+    exit;
+}
+
+$zip = new ZipArchive;
+if ($zip->open($tempZip) !== TRUE) {
+    logMsg("❌ Erreur lors de l'ouverture du ZIP", 'error');
+    @unlink($tempZip);
+    exit;
+}
+
+$tempDir = sys_get_temp_dir() . '/' . 'selfregistration_' . time();
+mkdir($tempDir, 0755, true);
+
+$extractResult = $zip->extractTo($tempDir);
+$zip->close();
+
+if (!$extractResult) {
+    logMsg("❌ Échec de l'extraction", 'error');
+    @unlink($tempZip);
+    @rmdir($tempDir);
+    exit;
+}
+
+logMsg("✅ Archive extraite", 'success');
+@unlink($tempZip);
+
+// 3. Trouver le dossier extrait
+$items = scandir($tempDir);
+$sourceDir = '';
+foreach ($items as $item) {
+    if ($item != '.' && $item != '..' && is_dir($tempDir . '/' . $item)) {
+        $sourceDir = $tempDir . '/' . $item;
+        break;
+    }
+}
+
+if (empty($sourceDir)) {
+    logMsg("❌ Archive vide ou structure incorrecte", 'error');
+    exit;
+}
+
+logMsg("📂 Dossier source : " . basename($sourceDir), 'info');
+
+// 4. Copier les fichiers avec exclusion
+logMsg("📝 Copie des fichiers (fichiers protégés exclus)...");
+
+$count = 0;
+$errorCount = 0;
+$skippedCount = 0;
+
+// Fichiers à ne PAS remplacer s'ils existent déjà
+$protectedFiles = ['config.php'];
+
+$iterator = new RecursiveIteratorIterator(
+    new RecursiveDirectoryIterator($sourceDir, RecursiveDirectoryIterator::SKIP_DOTS),
+    RecursiveIteratorIterator::SELF_FIRST
+);
+
+foreach ($iterator as $item) {
+    if ($item->isFile()) {
+        $relativePath = substr($item->getPathname(), strlen($sourceDir));
+        $destPath = $currentDir . $relativePath;
+        $filename = basename($destPath);
+        
+        // Vérifier si c'est un fichier protégé qui existe déjà
+        if (in_array($filename, $protectedFiles) && file_exists($destPath)) {
+            logMsg("🔒 Fichier protégé conservé : $filename", 'info');
+            $skippedCount++;
+            continue;
+        }
+        
+        // Ignorer les fichiers .git
+        if (strpos($relativePath, '/.git') !== false) {
+            continue;
+        }
+        
+        $destDir = dirname($destPath);
+        if (!is_dir($destDir)) {
+            if (!mkdir($destDir, 0755, true)) {
+                logMsg("Impossible de créer : $destDir", 'error');
+                $errorCount++;
+                continue;
+            }
+        }
+        
+        // Copie du fichier
+        if (copy($item->getPathname(), $destPath)) {
+            $count++;
+            
+            // Ajuster les permissions sur Linux
+            if (!$isWindows) {
+                @chmod($destPath, 0644);
+            }
+            
+            // Afficher progression tous les 5 fichiers
+            if ($count % 5 === 0) {
+                logMsg("$count fichiers copiés...");
+                flush();
+            }
+        } else {
+            logMsg("Échec copie : " . basename($item->getPathname()), 'error');
+            $errorCount++;
+        }
+    }
+}
+
+// 5. Nettoyer
+logMsg("🧹 Nettoyage des fichiers temporaires...");
+$files = new RecursiveIteratorIterator(
+    new RecursiveDirectoryIterator($tempDir, RecursiveDirectoryIterator::SKIP_DOTS),
+    RecursiveIteratorIterator::CHILD_FIRST
+);
+
+foreach ($files as $file) {
+    if ($file->isDir()) {
+        @rmdir($file->getPathname());
+    } else {
+        @unlink($file->getPathname());
+    }
+}
+@rmdir($tempDir);
+
+logMsg("✅ Nettoyage terminé", 'success');
+
+// Résumé
+echo "<div style='margin: 30px 0; padding: 20px; background: #d4edda; border-left: 4px solid #28a745; border-radius: 5px;'>";
+echo "<h2 style='margin-top: 0; color: #155724;'>✅ Mise à jour terminée avec succès !</h2>";
+echo "<p><strong>Fichiers copiés :</strong> $count</p>";
+
+if ($skippedCount > 0) {
+    echo "<p><strong>Fichiers protégés conservés :</strong> $skippedCount</p>";
+}
+
+if ($errorCount > 0) {
+    echo "<p style='color: #dc3545;'><strong>Erreurs :</strong> $errorCount</p>";
+}
+echo "</div>";
+
+// Vérifier quelques fichiers importants
+echo "<h3>🔍 Vérification rapide :</h3>";
+echo "<div style='background: #f8f9fa; padding: 15px; border-radius: 5px;'>";
+
+$checkFiles = [
+    'index.html' => $currentDir . '/index.html',
+    'process.php' => $currentDir . '/process.php',
+    'js/script.js' => $currentDir . '/js/script.js',      // ← Corrigé
+    'css/style.css' => $currentDir . '/css/style.css',    // ← Corrigé
+    'selfregistration.php' => $currentDir . '/selfregistration.php',
+    'config.php (protégé)' => $currentDir . '/config.php',
+    'README.md' => $currentDir . '/README.md',
+];
+
+foreach ($checkFiles as $name => $path) {
+    if (file_exists($path)) {
+        $status = strpos($name, 'protégé') !== false ? 'conservé' : 'présent';
+        $icon = strpos($name, 'protégé') !== false ? '🔒' : '✅';
+        echo "<div style='padding: 5px 0;'>$icon <strong>$name</strong> - $status</div>";
+    } else {
+        if (strpos($name, 'protégé') === false) {
+            echo "<div style='padding: 5px 0; color: #dc3545;'>❌ <strong>$name</strong> - absent</div>";
+        } else {
+            echo "<div style='padding: 5px 0; color: #6c757d;'>ℹ️ <strong>$name</strong> - non présent dans la source</div>";
+        }
+    }
+}
+
+echo "</div>";
+
+echo "<div style='margin-top: 30px; text-align: center;'>";
+echo "<a href='selfregistration.php' class='btn'>🏠 Retour à l'administration</a>";
+echo "</div>";
+
+?>
+
+</div>
+</body>
+</html>
