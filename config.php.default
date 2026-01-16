@@ -1,0 +1,26 @@
+<?php
+// Configuration globale pour l'auto-inscription IANSEO
+// Ce fichier ne doit pas être accessible directement depuis le web
+
+// Empêcher l'accès direct
+if (!defined('CONFIG_ACCESS')) {
+    die('Accès direct interdit');
+}
+
+// Configuration globale de l'adresse d'expédition des emails
+$config = [
+    'mail_from' => 'ianseo@mail.com',
+    
+    // Configurations des tournois
+    // Format: tournament_id => ['token' => 'xxx', 'admin_email' => 'xxx']
+    'tournaments' => [
+        124 => [
+            'token' => 'MONTOKENSECRET',
+            'admin_email' => 'admin@ianseo.com'
+        ],
+        // Ajoutez d'autres tournois ici
+    ]
+];
+
+return $config;
+?>

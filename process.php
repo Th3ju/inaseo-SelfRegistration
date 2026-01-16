@@ -145,17 +145,20 @@ function send_registration_email($user_email, $admin_email, $user_data, $tournam
     ];
 }
 
-// Fonction pour charger les configurations du fichier config.txt
-function load_config($tournament_id = null) {
-    $config_file = __DIR__ . '/config.txt';
-    if (!file_exists($config_file)) {
-        return null;
-    }
-    
-    $config = [
-        'mail_from' => 'noreply@ianseo.net', // Valeur par défaut
-        'tournament' => null
+// Fonction pour charger les configurations du fichier config.php
+define('CONFIG_ACCESS', true);
+$config_data = require __DIR__ . '/config.php';
+
+$mail_from = $config_data['mail_from'];
+$tournaments = [];
+
+foreach ($config_data['tournaments'] as $tournament_id => $tournament_config) {
+    $tournaments[$tournament_id] = [
+        'token' => $tournament_config['token'],
+        'admin_email' => $tournament_config['admin_email']
     ];
+}
+
     
     $lines = file($config_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
     foreach ($lines as $line) {
