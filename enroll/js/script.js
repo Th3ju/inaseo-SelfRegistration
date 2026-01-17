@@ -486,7 +486,7 @@ function submitRegistration() {
             // Réinitialiser le formulaire après 3 secondes
             setTimeout(() => {
                 location.reload();
-            }, 30000);
+            }, 3000);
         } else {
             showError(data.error || "Erreur lors de l'inscription");
         }
