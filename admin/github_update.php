@@ -293,7 +293,7 @@ $errorCount = 0;
 $skippedCount = 0;
 
 // Fichiers à ne PAS remplacer s'ils existent déjà
-$protectedFiles = ['config.php'];
+$protectedFiles = ['enroll/config.php'];
 
 $iterator = new RecursiveIteratorIterator(
     new RecursiveDirectoryIterator($sourceDir, RecursiveDirectoryIterator::SKIP_DOTS),
@@ -393,13 +393,13 @@ echo "<h3>🔍 Vérification rapide :</h3>";
 echo "<div style='background: #f8f9fa; padding: 15px; border-radius: 5px;'>";
 
 $checkFiles = [
-    'index.html' => $moduleDir . '/index.html',
-    'process.php' => $moduleDir . '/process.php',
-    'js/script.js' => $moduleDir . '/js/script.js',
-    'css/style.css' => $moduleDir . '/css/style.css',
+    'index.html' => $moduleDir . '/enroll/index.html',
+    'process.php' => $moduleDir . '/enroll//process.php',
+    'js/script.js' => $moduleDir . '/enroll//js/script.js',
+    'css/style.css' => $moduleDir . '/enroll//css/style.css',
     'admin/selfregistration.php' => $moduleDir . '/admin/selfregistration.php',
     'admin/github_update.php' => $moduleDir . '/admin/github_update.php',
-    'config.php (protégé)' => $moduleDir . '/config.php',
+    'config.php (protégé)' => $moduleDir . '/enroll//config.php',
     'README.md' => $moduleDir . '/README.md',
 ];
 
