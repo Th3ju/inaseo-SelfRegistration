@@ -180,7 +180,7 @@ function load_config($tournament_id = null) {
 
 
 // Chemin IANSEO
-$ianseo_root = dirname(__DIR__, 3);
+$ianseo_root = dirname(__DIR__, 4);
 $config_path = $ianseo_root . '/Common/config.inc.php';
 
 if (!file_exists($config_path)) {

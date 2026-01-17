@@ -394,13 +394,14 @@ echo "<div style='background: #f8f9fa; padding: 15px; border-radius: 5px;'>";
 
 $checkFiles = [
     'index.html' => $moduleDir . '/enroll/index.html',
-    'process.php' => $moduleDir . '/enroll//process.php',
-    'js/script.js' => $moduleDir . '/enroll//js/script.js',
-    'css/style.css' => $moduleDir . '/enroll//css/style.css',
+    'process.php' => $moduleDir . '/enroll/process.php',
+    'js/script.js' => $moduleDir . '/enroll/js/script.js',
+    'css/style.css' => $moduleDir . '/enroll/css/style.css',
     'admin/selfregistration.php' => $moduleDir . '/admin/selfregistration.php',
     'admin/github_update.php' => $moduleDir . '/admin/github_update.php',
     'config.php (protégé)' => $moduleDir . '/enroll//config.php',
     'README.md' => $moduleDir . '/README.md',
+    'index.php' => $moduleDir . '/index.php',
 ];
 
 foreach ($checkFiles as $name => $path) {
