@@ -60,7 +60,7 @@ try {
 }
 
 // Chemin du fichier de configuration
-$configFile = dirname(__DIR__) . 'enroll/config.php';
+$configFile = dirname(__DIR__) . '/enroll/config.php';
 
 // Initialiser les compétitions
 $competitions = [];
