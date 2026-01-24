@@ -399,6 +399,7 @@ $checkFiles = [
     'css/style.css' => $moduleDir . '/enroll/css/style.css',
     'admin/selfregistration.php' => $moduleDir . '/admin/selfregistration.php',
     'admin/github_update.php' => $moduleDir . '/admin/github_update.php',
+    'admin/send_recap.php' => $moduleDir . '/admin/send_recap.php',
     'config.php (protégé)' => $moduleDir . '/enroll//config.php',
     'README.md' => $moduleDir . '/README.md',
     'index.php' => $moduleDir . '/index.php',
