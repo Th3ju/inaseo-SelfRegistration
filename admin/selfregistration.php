@@ -643,7 +643,7 @@ function updateTournamentName() {
             <!-- NOUVEAU : lien vers la page d'envoi des récapitulatifs -->
             <a href="send_recap.php" class="btn btn-secondary">📧 Envoyer les récapitulatifs</a>
 
-            <a href="githubupdate.php" class="btn btn-secondary">Mettre à jour depuis GitHub</a>
+            <a href="github_update.php" class="btn btn-secondary">Mettre à jour depuis GitHub</a>
         </div>
     <?php endif; ?>
 </div>
