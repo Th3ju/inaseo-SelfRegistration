@@ -129,7 +129,8 @@ if (!isset($_GET['confirm'])) {
         <li><code>css/style.css</code> - Styles CSS</li>
         <li><code>admin/selfregistration.php</code> - Page d'administration</li>
         <li><code>admin/github_update.php</code> - Ce script de mise à jour</li>
-        <li><code>README.md</code> - Documentation</li>
+        <li><code>admin/send_recap.php</code> - Envoi recap par mail </li>
+        <li><code>README.md</code> - Documentation</li>       
     </ul>
 
     <div style="margin-top: 30px; text-align: center;">
