@@ -59,6 +59,43 @@ function loadConfig($tournamentId=null) {
     return $config;
 }
 
+/* ===== Calcul catégorie d'âge FFTA (dynamique) ===== */
+function calculateFFTAAgeCategory($dob, $refYear) {
+    if (empty($dob)) return '';
+    
+    $birthDate = strtotime($dob);
+    if ($birthDate === false) return '';
+    
+    // Catégories définies par leur âge minimum et maximum
+    // [code, âge_min, âge_max]
+    $categories = [
+        ['S3', 60, 999],  // 60 ans et plus
+        ['S2', 40, 59],   // 40 à 59 ans
+        ['S1', 21, 39],   // 21 à 39 ans
+        ['U21', 18, 20],  // 18 à 20 ans
+        ['U18', 15, 17],  // 15 à 17 ans
+        ['U15', 13, 14],  // 13 à 14 ans
+        ['U13', 11, 12],  // 11 à 12 ans
+        ['U11', 0, 10],   // 10 ans et moins
+    ];
+    
+    // Pour chaque catégorie, on calcule si l'archer est dedans
+    foreach ($categories as list($code, $ageMin, $ageMax)) {
+        // Date limite basse : né après le 31.12.(refYear - ageMax - 1)
+        $dateLimitLow = strtotime(($refYear - $ageMax - 1) . "-12-31");
+        
+        // Date limite haute : né avant le 01.01.(refYear - ageMin + 1)
+        $dateLimitHigh = strtotime(($refYear - $ageMin) . "-01-01");
+        
+        // Vérification : né après limite basse ET avant limite haute
+        if ($birthDate > $dateLimitLow && $birthDate < $dateLimitHigh) {
+            return $code;
+        }
+    }
+    
+    return '';
+}
+
 /* ===== email (HTML + détails par départ) ===== */
 function sendRegistrationEmail(mysqli $conn, int $tournamentId, string $userEmail, string $adminEmail, array $userData, string $tournamentName, string $fromEmail = 'noreply@ianseo.net') {
     $license   = htmlspecialchars($userData['license'] ?? '');
@@ -82,24 +119,19 @@ function sendRegistrationEmail(mysqli $conn, int $tournamentId, string $userEmai
         $tp = explode(':', $start);
         if (count($tp) >= 2) $start = $tp[0] . ':' . $tp[1];
 
-// Date FR: 2026-01-30 => 30 Janvier 2026 (uniquement pour le mail)
-$dateFr = $day;
-$parts = explode('-', $day);
-if (count($parts) === 3) {
-    $months = [
-        '01'=>'Janvier','02'=>'Février','03'=>'Mars','04'=>'Avril','05'=>'Mai','06'=>'Juin',
-        '07'=>'Juillet','08'=>'Août','09'=>'Septembre','10'=>'Octobre','11'=>'Novembre','12'=>'Décembre'
-    ];
-    $dateFr = intval($parts[2]) . ' ' . ($months[$parts[1]] ?? $parts[1]) . ' ' . $parts[0];
-}
+        // Date FR: 2026-01-30 => 30 Janvier 2026 (uniquement pour le mail)
+        $dateFr = $day;
+        $parts = explode('-', $day);
+        if (count($parts) === 3) {
+            $months = [
+                '01'=>'Janvier','02'=>'Février','03'=>'Mars','04'=>'Avril','05'=>'Mai','06'=>'Juin',
+                '07'=>'Juillet','08'=>'Août','09'=>'Septembre','10'=>'Octobre','11'=>'Novembre','12'=>'Décembre'
+            ];
+            $dateFr = intval($parts[2]) . ' ' . ($months[$parts[1]] ?? $parts[1]) . ' ' . $parts[0];
+        }
 
-return trim($dateFr . ' ' . $start);
-    
-
-
-
-
-};
+        return trim($dateFr . ' ' . $start);
+    };
 
     $getDivisionLabel = function(string $divId) use ($conn, $tournamentId) {
         $q = "SELECT DivDescription FROM Divisions WHERE DivTournament = ? AND DivId = ? LIMIT 1";
@@ -474,6 +506,7 @@ if ($action === 'getclasses') {
     $dob = $_POST['dob'] ?? '';
     $sex = intval($_POST['sex'] ?? 0);
 
+    // Récupération de l'année de référence du tournoi
     $tourQ = "SELECT YEAR(ToWhenTo) as year FROM Tournament WHERE ToId = ?";
     $tourS = mysqli_prepare($conn, $tourQ);
     bindSafe($tourS, $tourQ, 'i', [$tournamentId]);
@@ -482,25 +515,33 @@ if ($action === 'getclasses') {
     $tourRow = mysqli_fetch_assoc($tourR);
     $refYear = intval($tourRow['year'] ?? date('Y'));
 
-    $birthYear = intval(substr($dob, 0, 4));
-    $age = $refYear - $birthYear;
+    // Calcul de la catégorie d'âge FFTA
+    $categoryCode = calculateFFTAAgeCategory($dob, $refYear);
 
+    if (empty($categoryCode)) {
+        sendError("Impossible de déterminer la catégorie d'âge", ['dob' => $dob, 'refYear' => $refYear]);
+    }
+
+    // Filtrage des classes compatibles avec la catégorie calculée
     $q = "SELECT DISTINCT c.ClId, c.ClDescription
           FROM Classes c
           WHERE c.ClTournament = ?
             AND c.ClAthlete = 1
             AND (c.ClDivisionsAllowed = '' OR FIND_IN_SET(?, c.ClDivisionsAllowed))
             AND c.ClSex IN (-1, ?)
-            AND c.ClAgeFrom <= ?
-            AND c.ClAgeTo >= ?
+            AND c.ClId LIKE ?
           ORDER BY c.ClViewOrder";
+    
     $stmt = mysqli_prepare($conn, $q);
-    bindSafe($stmt, $q, 'isiii', [$tournamentId, $division, $sex, $age, $age]);
+    $categoryPattern = $categoryCode . '%'; // Ex: "S2%" matche S2H, S2F, S2D...
+    bindSafe($stmt, $q, 'isis', [$tournamentId, $division, $sex, $categoryPattern]);
     mysqli_stmt_execute($stmt);
     $res = mysqli_stmt_get_result($stmt);
+    
     $classes = [];
     while ($row = mysqli_fetch_assoc($res)) $classes[] = $row;
-    sendSuccess($classes);
+    
+    sendSuccess($classes, '', ['category' => $categoryCode, 'refYear' => $refYear]);
 }
 
 /* ===== getsessions ===== */
@@ -575,30 +616,20 @@ if ($action === 'gettargetfaces') {
             'tests' => []
         ];
 
-        // Vérification 1: TfClasses vide ou % = accepte tout
         if (empty($tfClasses) || trim($tfClasses) === '%') {
             $isValid = true;
             $debugEntry['tests'][] = 'MATCH: TfClasses vide ou % (universel)';
-        }
-        // Vérification 2: TfClasses contient des patterns
-        else {
+        } else {
             $classesArray = array_map('trim', explode(',', $tfClasses));
             
             foreach ($classesArray as $pattern) {
                 if (empty($pattern)) continue;
                 
-                // Convertir pattern IANSEO en regex
-                // % devient .* (n'importe quoi)
-                // * devient .* aussi (certains systèmes utilisent *)
-                // caractères normaux restent littéraux
                 if (strpos($pattern, '%') !== false) {
-                    // Pattern avec % wildcard
                     $regexPattern = '/^' . str_replace('%', '.*', preg_quote($pattern, '/')) . '$/';
                 } else if (strpos($pattern, '*') !== false) {
-                    // Pattern avec * wildcard (variante)
                     $regexPattern = '/^' . str_replace('\\*', '.*', preg_quote($pattern, '/')) . '$/';
                 } else {
-                    // Pattern exact sans wildcard
                     $regexPattern = '/^' . preg_quote($pattern, '/') . '$/';
                 }
 
@@ -612,12 +643,11 @@ if ($action === 'gettargetfaces') {
 
                 if ($matches) {
                     $isValid = true;
-                    break; // Un seul match suffit
+                    break;
                 }
             }
         }
 
-        // Vérification 3: TfRegExp (filtre supplémentaire APRÈS TfClasses)
         if ($isValid && !empty($tfRegExp) && trim($tfRegExp) !== '') {
             $regexMatch = @preg_match('/' . $tfRegExp . '/', $fullCategory);
             
@@ -913,7 +943,6 @@ if ($action === 'submitregistration') {
             $adminEmail = $cfg['tournament']['admin_email'] ?? '';
             $fromEmail = $cfg['mail_from'] ?? 'noreply@ianseo.net';
 
-            // FIX: bonne signature
             $emails = sendRegistrationEmail($conn, $tournamentId, (string)$data['email'], $adminEmail, $data, $tournamentName, $fromEmail);
         }
 
@@ -925,4 +954,3 @@ if ($action === 'submitregistration') {
 }
 
 sendError("Action inconnue");
-
