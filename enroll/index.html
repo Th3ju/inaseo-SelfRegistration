@@ -1,162 +1,110 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inscription Tournoi IANSEO</title>
-    <link rel="stylesheet" href="css/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inscription Tournoi IANSEO</title>
+  <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
-    <div class="container">
-        <h1>Inscription au tournoi</h1>
-        <h2 id="tournament-name">Chargement...</h2>
+  <div class="container">
+    <h1>Inscription au tournoi</h1>
+    <h2 id="tournament-name">Chargement...</h2>
 
-        <!-- Messages -->
-        <div id="error-message" class="message error" style="display: none;"></div>
-        <div id="success-message" class="message success" style="display: none;"></div>
+    <div id="error-message" class="message error" style="display:none;"></div>
+    <div id="success-message" class="message success" style="display:none;"></div>
 
-        <!-- Barre de progression -->
-        <div class="progress-bar">
-            <div class="progress-step active" data-step="1">1. Identification</div>
-            <div class="progress-step" data-step="2">2. Division</div>
-            <div class="progress-step" data-step="3">3. Catégorie</div>
-            <div class="progress-step" data-step="4">4. Départs</div>
-            <div class="progress-step" data-step="5">5. Blasons</div>
-            <div class="progress-step" data-step="6">6. Confirmation</div>
-        </div>
-
-        <!-- ÉTAPE 1: Identification -->
-        <div id="step-1" class="form-step active">
-            <h3>Étape 1 : Identification</h3>
-            <div class="form-group">
-                <label for="license">Numéro de licence :</label>
-                <input type="text" id="license" name="license" required>
-            </div>
-            <div class="form-group">
-                <label for="lastname">Nom de famille :</label>
-                <input type="text" id="lastname" name="lastname" required>
-            </div>
-            <div class="form-group">
-                <label for="email">Email :</label>
-                <input type="email" id="email" name="email" required>
-            </div>
-            <div class="button-group">
-                <button type="button" class="btn btn-primary" onclick="nextStep(1)">Suivant</button>
-            </div>
-        </div>
-
-        <!-- ÉTAPE 2: Informations + Division -->
-        <div id="step-2" class="form-step">
-            <h3>Étape 2 : Vos informations</h3>
-            <div class="info-display">
-                <div class="info-row">
-                    <span class="info-label">Nom :</span>
-                    <span id="info-name" class="info-value"></span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Prénom :</span>
-                    <span id="info-firstname" class="info-value"></span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Date de naissance :</span>
-                    <span id="info-dob" class="info-value"></span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Sexe :</span>
-                    <span id="info-sex" class="info-value"></span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Club :</span>
-                    <span id="info-club" class="info-value"></span>
-                </div>
-            </div>
-
-     <!--       <div class="form-group">
-                <label for="email">Email :</label>
-                <input type="email" id="email" name="email" required>
-            </div>
-
-        -->
-            <div class="form-group">
-                <label for="division">Division :</label>
-                <select id="division" name="division" required>
-                    <option value="">-- Choisir --</option>
-                </select>
-            </div>
-
-            <div class="button-group">
-                <button type="button" class="btn btn-secondary" onclick="prevStep(2)">Retour</button>
-                <button type="button" class="btn btn-primary" onclick="nextStep(2)">Suivant</button>
-            </div>
-        </div>
-
-        <!-- ÉTAPE 3: Catégorie d'âge -->
-        <div id="step-3" class="form-step">
-            <h3>Étape 3 : Catégorie d'âge</h3>
-            <div class="form-group">
-                <label for="ageclass">Catégorie :</label>
-                <select id="ageclass" name="ageclass" required>
-                    <option value="">-- Choisir --</option>
-                </select>
-            </div>
-            <div class="button-group">
-                <button type="button" class="btn btn-secondary" onclick="prevStep(3)">Retour</button>
-                <button type="button" class="btn btn-primary" onclick="nextStep(3)">Suivant</button>
-            </div>
-        </div>
-
-        <!-- ÉTAPE 4: Départs -->
-        <div id="step-4" class="form-step">
-            <h3>Étape 4 : Sélection des départs</h3>
-            <p>Sélectionnez le(s) départ(s) auquel vous souhaitez participer</p>
-            <div id="sessions-container"></div>
-            <div class="button-group">
-                <button type="button" class="btn btn-secondary" onclick="prevStep(4)">Retour</button>
-                <button type="button" class="btn btn-primary" onclick="nextStep(4)">Suivant</button>
-            </div>
-        </div>
-
-        <!-- ÉTAPE 5: Blasons -->
-        <div id="step-5" class="form-step">
-            <h3>Étape 5 : Sélection des blasons</h3>
-            <p>Sélectionnez le type de blason pour chaque départ</p>
-            <div id="targetface-container"></div>
-            <div class="button-group">
-                <button type="button" class="btn btn-secondary" onclick="prevStep(5)">Retour</button>
-                <button type="button" class="btn btn-primary" onclick="nextStep(5)">Suivant</button>
-            </div>
-        </div>
-
-        <!-- ÉTAPE 6: Récapitulatif -->
-        <div id="step-6" class="form-step">
-            <h3>Étape 6 : Récapitulatif</h3>
-            <div id="summary-content" class="summary-box"></div>
-            <div class="button-group">
-                <button type="button" class="btn btn-secondary" onclick="prevStep(6)">Retour</button>
-                <button type="button" class="btn btn-success" onclick="submitRegistration()">Confirmer l'inscription</button>
-            </div>
-        </div>
-
-        <!-- Loading overlay -->
-        <div id="loading" class="loading-overlay">
-            <div class="spinner"></div>
-        </div>
+    <div class="progress-bar">
+      <div class="progress-step active" data-step="1">1. Identification</div>
+      <div class="progress-step" data-step="2">2. Départs</div>
+      <div class="progress-step" data-step="3">3. Choix par départ</div>
+      <div class="progress-step" data-step="4">4. Confirmation</div>
     </div>
 
-<script>
-    // Récupérer le tournament ID et le token depuis l'URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const tournamentIdFromUrl = urlParams.get('tournament');
-    const token = urlParams.get('token');
-    
-    if (!tournamentIdFromUrl || !token) {
-        document.body.innerHTML = '<div style="text-align: center; padding: 50px; font-family: Arial;"><h1>Erreur</h1><p>Paramètres manquants dans l\'URL.</p><p>Format attendu: ?tournament=123&token=VOTRE_TOKEN</p></div>';
-        throw new Error('Paramètres manquants');
-    }
-    
-    let TOURNAMENT_ID = parseInt(tournamentIdFromUrl);
-    const ACCESS_TOKEN = token;
-</script>
-<script src="js/script.js"></script>
+    <div id="step-1" class="form-step active">
+      <h3>Étape 1 : Identification</h3>
+      <div class="form-group">
+        <label for="license">Numéro de licence</label>
+        <input type="text" id="license" name="license" required />
+      </div>
+      <div class="form-group">
+        <label for="lastname">Nom de famille</label>
+        <input type="text" id="lastname" name="lastname" required />
+      </div>
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required />
+      </div>
+      <div class="button-group">
+        <button type="button" class="btn btn-primary" onclick="nextStep(1)">Suivant</button>
+      </div>
+    </div>
+
+    <div id="step-2" class="form-step">
+      <h3>Étape 2 : Départs</h3>
+
+      <div class="info-display">
+        <div class="info-row"><span class="info-label">Nom</span><span id="info-name" class="info-value"></span></div>
+        <div class="info-row"><span class="info-label">Prénom</span><span id="info-firstname" class="info-value"></span></div>
+        <div class="info-row"><span class="info-label">Date de naissance</span><span id="info-dob" class="info-value"></span></div>
+        <div class="info-row"><span class="info-label">Sexe</span><span id="info-sex" class="info-value"></span></div>
+        <div class="info-row"><span class="info-label">Club</span><span id="info-club" class="info-value"></span></div>
+      </div>
+
+      <p>Sélectionnez le(s) départ(s) :</p>
+      <div id="sessions-container"></div>
+
+      <div class="button-group">
+        <button type="button" class="btn btn-secondary" onclick="prevStep(2)">Retour</button>
+        <button type="button" class="btn btn-primary" onclick="nextStep(2)">Suivant</button>
+      </div>
+    </div>
+
+    <div id="step-3" class="form-step">
+      <h3>Étape 3 : Choix par départ</h3>
+      <div id="session-choices-container"></div>
+
+      <div class="button-group">
+        <button type="button" class="btn btn-secondary" onclick="prevStep(3)">Retour</button>
+        <button type="button" class="btn btn-primary" onclick="nextStep(3)">Suivant</button>
+      </div>
+    </div>
+
+    <div id="step-4" class="form-step">
+      <h3>Étape 4 : Récapitulatif</h3>
+      <div id="summary-content" class="summary-box"></div>
+
+      <div class="button-group">
+        <button type="button" class="btn btn-secondary" onclick="prevStep(4)">Retour</button>
+        <button type="button" class="btn btn-success" onclick="submitRegistration()">Confirmer l'inscription</button>
+      </div>
+    </div>
+
+    <div id="loading" class="loading-overlay">
+      <div class="spinner"></div>
+    </div>
+
+    <script>
+      const urlParams = new URLSearchParams(window.location.search);
+      const tournamentIdFromUrl = urlParams.get("tournament");
+      const token = urlParams.get("token");
+
+      if (!tournamentIdFromUrl || !token) {
+        document.body.innerHTML =
+          '<div style="text-align:center;padding:50px;font-family:Arial;">' +
+          "<h1>Erreur</h1>" +
+          "<p>Paramètres manquants dans l'URL.</p>" +
+          "<p>Format attendu : ?tournament=123&token=VOTRETOKEN</p>" +
+          "</div>";
+        throw new Error("Paramètres manquants");
+      }
+
+      window.TOURNAMENTID = parseInt(tournamentIdFromUrl, 10);
+      window.ACCESSTOKEN = token;
+    </script>
+
+    <script src="js/script.js"></script>
+  </div>
 </body>
 </html>
+

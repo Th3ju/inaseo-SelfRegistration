@@ -464,4 +464,13 @@ p {
     .info-label {
         min-width: 120px;
     }
+
+/* Optionnel: améliore la lisibilité des blocs "choix par départ" */
+#session-choices-container .form-control {
+  margin-top: 6px;
+}
+#session-choices-container label {
+  display: block;
+}
+
 }

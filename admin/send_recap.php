@@ -314,11 +314,11 @@ function sendRecapEmail(string $toEmail, array $archers, object $tournament_info
     $message .= "<ul>";
     $message .= "<li><strong>Tournoi :</strong> " . htmlspecialchars($tournament_info->ToName) . "</li>";
     $message .= "<li><strong>Dates :</strong> " . htmlspecialchars($datesTxt) . "</li>";
-    $message .= "<li><strong>Lieu :</strong> " . htmlspecialchars($lieu ?: 'Non défini') . "</li>";
-    $message .= "<li><strong>Ville :</strong> " . htmlspecialchars($ville ?: 'Non défini') . "</li>";
+    $message .= "<li><strong>Adresse :</strong> " . htmlspecialchars($lieu ?: 'Non défini') . "</li>";
+    # $message .= "<li><strong>Ville :</strong> " . htmlspecialchars($ville ?: 'Non défini') . "</li>";
     $message .= "</ul>";
     if (!empty($tournament_info->ToComDescr)) {
-        $message .= "<p>" . nl2br(htmlspecialchars($tournament_info->ToComDescr)) . "</p>";
+        $message .= "<p><strong>Club organisateur :</strong> " . nl2br(htmlspecialchars($tournament_info->ToComDescr)) . "</p>";
     }
     $message .= "</div>";
 
@@ -338,7 +338,7 @@ function sendRecapEmail(string $toEmail, array $archers, object $tournament_info
             foreach ($a['departs'] as $d) {
                 $line = $d['label'];
                 if ($includeTargets && !empty($d['target'])) {
-                    $line .= " - Cible : " . $d['target'];
+                    $line .= " - Cible (donnée à titre indicatif, susceptible d'être modifiée) : " . $d['target'];
                 }
                 $message .= "<li>" . htmlspecialchars($line) . "</li>";
             }
