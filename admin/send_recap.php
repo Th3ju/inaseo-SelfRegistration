@@ -357,6 +357,7 @@ function sendRecapEmail(string $toEmail, array $archers, object $tournament_info
     }
 
     $message .= "<p>Nous vous attendons avec impatience !</p>";
+    $message .= "</div>";
     $message .= "</body></html>";
 
     $fromEmail = $mailFrom ?: ($adminEmail ?: ('noreply@' . ($_SERVER['HTTP_HOST'] ?? 'localhost')));
