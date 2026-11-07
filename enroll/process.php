@@ -827,12 +827,15 @@ if ($action === 'submitregistration') {
             $indClEvent = 1;
             $indFEvent = 1;
 
+            // EnOnlineId et EnMainInfoUpdate sont NOT NULL sans valeur par défaut
+            // dans les versions récentes d'IANSEO : il faut les renseigner explicitement.
             $insertQuery = "INSERT INTO Entries
-              (EnTournament, EnCode, EnIocCode, EnFirstName, EnName, EnSex, EnDob, EnDivision, EnClass, EnAgeClass,
+              (EnTournament, EnCode, EnIocCode, EnName, EnFirstName, EnSex, EnDob, EnDivision, EnClass, EnAgeClass,
                EnCountry, EnCountry2, EnCountry3, EnSubTeam, EnCtrlCode, EnTargetFace, EnStatus, EnAthlete, EnClassified,
                EnIndClEvent, EnTeamClEvent, EnIndFEvent, EnTeamFEvent, EnTeamMixEvent, EnWChair, EnSitting, EnPays, EnDoubleSpace,
-               EnSubClass, EnBadgePrinted, EnNameOrder, EnLueTimeStamp, EnLueFieldChanged, EnOdfShortname, EnTvGivenName, EnTvFamilyName, EnTvInitials, EnTimestamp)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, '', ?, 0, 1, ?, ?, 0, ?, 0, 0, 0, 0, 1, 0, '', NULL, 0, '0000-00-00 00:00:00', 0, '', '', '', '', NOW())";
+               EnSubClass, EnBadgePrinted, EnNameOrder, EnLueTimeStamp, EnLueFieldChanged, EnOdfShortname, EnTvGivenName, EnTvFamilyName, EnTvInitials, EnTimestamp,
+               EnOnlineId, EnMainInfoUpdate)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, '', ?, 0, 1, ?, ?, 0, ?, 0, 0, 0, 0, 1, 0, '', NULL, 0, '0000-00-00 00:00:00', 0, '', '', '', '', NOW(), 0, NOW())";
 
             $stmt = mysqli_prepare($conn, $insertQuery);
             if (!$stmt) throw new Exception("Erreur prepare Entries: " . mysqli_error($conn));
