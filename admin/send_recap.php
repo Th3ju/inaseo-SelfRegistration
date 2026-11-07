@@ -187,22 +187,28 @@ function formatSessionDateTimeFR($day, $start) {
         '09' => 'septembre', '10' => 'octobre', '11' => 'novembre', '12' => 'décembre'
     ];
 
-    $day = (string)$day;
-    $start = (string)$start;
+    $day = trim((string)$day);
+    $start = trim((string)$start);
 
-    $datefr = $day;
-    $p = explode('-', $day);
-    if (count($p) === 3) {
-        $annee = $p[0];
-        $moisKey = $p[1];
-        $jour = intval($p[2]);
-        $mois = $monthsFr[$moisKey] ?? $moisKey;
-        $datefr = $jour . ' ' . $mois . ' ' . $annee;
+    $datefr = '';
+    if ($day !== '' && $day !== '0000-00-00' && $day !== '0000-00-00 00:00:00') {
+        $datefr = $day;
+        $p = explode('-', $day);
+        if (count($p) === 3) {
+            $annee = $p[0];
+            $moisKey = $p[1];
+            $jour = intval($p[2]);
+            $mois = $monthsFr[$moisKey] ?? $moisKey;
+            $datefr = $jour . ' ' . $mois . ' ' . $annee;
+        }
     }
 
-    $heurefr = $start;
-    $t = explode(':', $start);
-    if (count($t) >= 2) $heurefr = $t[0] . ':' . $t[1];
+    $heurefr = '';
+    if ($datefr !== '' && $start !== '') {
+        $heurefr = $start;
+        $t = explode(':', $start);
+        if (count($t) >= 2) $heurefr = $t[0] . ':' . $t[1];
+    }
 
     return [$datefr, $heurefr];
 }
@@ -232,6 +238,7 @@ function getInscriptionsByEmail(mysqli $db, int $tournament_id): array {
             e.EnAgeClass as age_classe,
             d.DivDescription as division_label,
             q.QuSession as session_num,
+            se.SesName as session_name,
             di.DiDay as session_day,
             di.DiStart as session_start,
             tf.TfName as blason,
@@ -246,6 +253,10 @@ function getInscriptionsByEmail(mysqli $db, int $tournament_id): array {
             ON di.DiTournament = e.EnTournament
            AND di.DiSession = q.QuSession
            AND di.DiDistance = 1
+        LEFT JOIN `Session` se
+            ON se.SesTournament = e.EnTournament
+           AND se.SesOrder = q.QuSession
+           AND se.SesType = di.DiType
         LEFT JOIN TargetFaces tf
             ON tf.TfId = e.EnTargetFace
            AND tf.TfTournament = e.EnTournament
@@ -277,14 +288,24 @@ function getInscriptionsByEmail(mysqli $db, int $tournament_id): array {
         $sessionNum = intval($row['session_num'] ?? 0);
         [$datefr, $heurefr] = formatSessionDateTimeFR($row['session_day'] ?? '', $row['session_start'] ?? '');
 
+        $sessionName = trim((string)($row['session_name'] ?? ''));
+        $sessionLabel = $sessionName !== '' ? $sessionName : ('Départ ' . $sessionNum);
+
         $divisionLabel = $row['division_label'] ?: 'Division inconnue';
         $blason = $row['blason'] ?: 'Non défini';
 
         $target = formatTarget($row['target_num'] ?? 0, $row['target_letter'] ?? '');
 
+        // Format : NOM_Session - Date heure - Division - Blason
+        $dateTime = trim($datefr . ' ' . $heurefr);
+        $labelParts = [$sessionLabel];
+        if ($dateTime !== '') $labelParts[] = $dateTime;
+        $labelParts[] = $divisionLabel;
+        $labelParts[] = $blason;
+
         $depart = [
             'num' => $sessionNum,
-            'label' => "Départ " . $sessionNum . " : " . $datefr . " - " . $heurefr . " - " . $divisionLabel . " - " . $blason,
+            'label' => implode(' - ', $labelParts),
             'target' => $target
         ];
 

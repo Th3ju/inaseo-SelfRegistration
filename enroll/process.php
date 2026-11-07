@@ -137,8 +137,11 @@ function sendRegistrationEmail(mysqli $conn, int $tournamentId, string $userEmai
         $row = mysqli_fetch_assoc($r);
         if (!$row) return '';
 
-        $day = (string)$row['DiDay'];
+        $day = trim((string)$row['DiDay']);
         $start = (string)$row['DiStart'];
+        if ($day === '' || $day === '0000-00-00' || $day === '0000-00-00 00:00:00') {
+            return '';
+        }
         $tp = explode(':', $start);
         if (count($tp) >= 2) $start = $tp[0] . ':' . $tp[1];
 
@@ -154,6 +157,23 @@ function sendRegistrationEmail(mysqli $conn, int $tournamentId, string $userEmai
         }
 
         return trim($dateFr . ' ' . $start);
+    };
+
+    $getSessionName = function(int $sessionId) use ($conn, $tournamentId) {
+        $q = "SELECT s.SesName
+              FROM DistanceInformation di
+              LEFT JOIN `Session` s
+                ON s.SesTournament = di.DiTournament
+               AND s.SesOrder = di.DiSession
+               AND s.SesType = di.DiType
+              WHERE di.DiTournament = ? AND di.DiSession = ?
+              LIMIT 1";
+        $st = mysqli_prepare($conn, $q);
+        mysqli_stmt_bind_param($st, 'ii', $tournamentId, $sessionId);
+        mysqli_stmt_execute($st);
+        $r = mysqli_stmt_get_result($st);
+        $row = mysqli_fetch_assoc($r);
+        return $row ? trim((string)$row['SesName']) : '';
     };
 
     $getDivisionLabel = function(string $divId) use ($conn, $tournamentId) {
@@ -267,6 +287,8 @@ function sendRegistrationEmail(mysqli $conn, int $tournamentId, string $userEmai
             $tfId  = intval($ch['targetface'] ?? 0);
 
             $dt = $getSessionDateTime($sessionId);
+            $sessionName = $getSessionName($sessionId);
+            $sessionLabel = $sessionName !== '' ? $sessionName : "Départ {$sessionId}";
 
             $divLabel = $divId ? $getDivisionLabel($divId) : '';
             $clLabel  = $clId ? $getClassLabel($clId) : '';
@@ -279,8 +301,8 @@ function sendRegistrationEmail(mysqli $conn, int $tournamentId, string $userEmai
 
             $sessionsHtml .= "
               <div style='margin:12px 0;padding:12px;border:1px solid #e0e0e0;border-radius:8px;background:#fff;'>
-                <div style='font-weight:bold;color:#333;margin-bottom:6px;'>Départ {$sessionId}</div>
-                <div><strong>Date et heure :</strong> " . htmlspecialchars($dt) . "</div>
+                <div style='font-weight:bold;color:#333;margin-bottom:6px;'>" . htmlspecialchars($sessionLabel) . "</div>
+                " . ($dt !== '' ? "<div><strong>Date et heure :</strong> " . htmlspecialchars($dt) . "</div>" : "") . "
                 <div><strong>Division :</strong> " . htmlspecialchars($divLabel) . "</div>
                 <div><strong>Catégorie :</strong> " . htmlspecialchars($clLabel) . "</div>
                 <div><strong>Distance :</strong> " . htmlspecialchars($distanceLabel) . "</div>
