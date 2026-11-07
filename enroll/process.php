@@ -59,43 +59,6 @@ function loadConfig($tournamentId=null) {
     return $config;
 }
 
-/* ===== Calcul catégorie d'âge FFTA (dynamique) ===== */
-function calculateFFTAAgeCategory($dob, $refYear) {
-    if (empty($dob)) return '';
-    
-    $birthDate = strtotime($dob);
-    if ($birthDate === false) return '';
-    
-    // Catégories définies par leur âge minimum et maximum
-    // [code, âge_min, âge_max]
-    $categories = [
-        ['S3', 60, 999],  // 60 ans et plus
-        ['S2', 40, 59],   // 40 à 59 ans
-        ['S1', 21, 39],   // 21 à 39 ans
-        ['U21', 18, 20],  // 18 à 20 ans
-        ['U18', 15, 17],  // 15 à 17 ans
-        ['U15', 13, 14],  // 13 à 14 ans
-        ['U13', 11, 12],  // 11 à 12 ans
-        ['U11', 0, 10],   // 10 ans et moins
-    ];
-    
-    // Pour chaque catégorie, on calcule si l'archer est dedans
-    foreach ($categories as list($code, $ageMin, $ageMax)) {
-        // Date limite basse : né après le 31.12.(refYear - ageMax - 1)
-        $dateLimitLow = strtotime(($refYear - $ageMax - 1) . "-12-31");
-        
-        // Date limite haute : né avant le 01.01.(refYear - ageMin + 1)
-        $dateLimitHigh = strtotime(($refYear - $ageMin) . "-01-01");
-        
-        // Vérification : né après limite basse ET avant limite haute
-        if ($birthDate > $dateLimitLow && $birthDate < $dateLimitHigh) {
-            return $code;
-        }
-    }
-    
-    return '';
-}
-
 /* ===== email (HTML + détails par départ) ===== */
 function sendRegistrationEmail(mysqli $conn, int $tournamentId, string $userEmail, string $adminEmail, array $userData, string $tournamentName, string $fromEmail = 'noreply@ianseo.net') {
     $license   = htmlspecialchars($userData['license'] ?? '');
@@ -506,42 +469,51 @@ if ($action === 'getclasses') {
     $dob = $_POST['dob'] ?? '';
     $sex = intval($_POST['sex'] ?? 0);
 
-    // Récupération de l'année de référence du tournoi
-    $tourQ = "SELECT YEAR(ToWhenTo) as year FROM Tournament WHERE ToId = ?";
+    // Année de référence : année de fin du tournoi, sinon année de début, sinon année courante
+    $tourQ = "SELECT YEAR(ToWhenTo) AS yearEnd, YEAR(ToWhenFrom) AS yearStart FROM Tournament WHERE ToId = ?";
     $tourS = mysqli_prepare($conn, $tourQ);
     bindSafe($tourS, $tourQ, 'i', [$tournamentId]);
     mysqli_stmt_execute($tourS);
     $tourR = mysqli_stmt_get_result($tourS);
     $tourRow = mysqli_fetch_assoc($tourR);
-    $refYear = intval($tourRow['year'] ?? date('Y'));
 
-    // Calcul de la catégorie d'âge FFTA
-    $categoryCode = calculateFFTAAgeCategory($dob, $refYear);
+    $refYear = intval($tourRow['yearEnd'] ?? 0);
+    if ($refYear <= 0) $refYear = intval($tourRow['yearStart'] ?? 0);
+    if ($refYear <= 0) $refYear = intval(date('Y'));
 
-    if (empty($categoryCode)) {
-        sendError("Impossible de déterminer la catégorie d'âge", ['dob' => $dob, 'refYear' => $refYear]);
+    // Âge au 31/12 de l'année du concours (règle IANSEO)
+    $birthYear = intval(substr(trim((string)$dob), 0, 4));
+    if ($birthYear <= 0) {
+        sendError("Date de naissance invalide", ['dob' => $dob]);
     }
+    $age = $refYear - $birthYear;
 
-    // Filtrage des classes compatibles avec la catégorie calculée
+    // Filtrage par les bornes d'âge définies dans IANSEO (ClAgeFrom/ClAgeTo).
+    // On ne filtre plus sur le nom de la classe : chaque concours peut avoir
+    // sa propre nomenclature (FFTA, international, flèches et plumes, 3D, etc.).
+    // Les classes dont les bornes sont non renseignées (0/0) sont considérées
+    // comme sans restriction d'âge.
     $q = "SELECT DISTINCT c.ClId, c.ClDescription
           FROM Classes c
           WHERE c.ClTournament = ?
             AND c.ClAthlete = 1
             AND (c.ClDivisionsAllowed = '' OR FIND_IN_SET(?, c.ClDivisionsAllowed))
             AND c.ClSex IN (-1, ?)
-            AND c.ClId LIKE ?
+            AND (
+              (c.ClAgeFrom <= ? AND c.ClAgeTo >= ?)
+              OR (COALESCE(c.ClAgeFrom, 0) <= 0 AND COALESCE(c.ClAgeTo, 0) <= 0)
+            )
           ORDER BY c.ClViewOrder";
-    
+
     $stmt = mysqli_prepare($conn, $q);
-    $categoryPattern = $categoryCode . '%'; // Ex: "S2%" matche S2H, S2F, S2D...
-    bindSafe($stmt, $q, 'isis', [$tournamentId, $division, $sex, $categoryPattern]);
+    bindSafe($stmt, $q, 'isiii', [$tournamentId, $division, $sex, $age, $age]);
     mysqli_stmt_execute($stmt);
     $res = mysqli_stmt_get_result($stmt);
-    
+
     $classes = [];
     while ($row = mysqli_fetch_assoc($res)) $classes[] = $row;
-    
-    sendSuccess($classes, '', ['category' => $categoryCode, 'refYear' => $refYear]);
+
+    sendSuccess($classes, '', ['age' => $age, 'refYear' => $refYear]);
 }
 
 /* ===== getsessions ===== */
@@ -624,14 +596,14 @@ if ($action === 'gettargetfaces') {
             
             foreach ($classesArray as $pattern) {
                 if (empty($pattern)) continue;
-                
-                if (strpos($pattern, '%') !== false) {
-                    $regexPattern = '/^' . str_replace('%', '.*', preg_quote($pattern, '/')) . '$/';
-                } else if (strpos($pattern, '*') !== false) {
-                    $regexPattern = '/^' . str_replace('\\*', '.*', preg_quote($pattern, '/')) . '$/';
-                } else {
-                    $regexPattern = '/^' . preg_quote($pattern, '/') . '$/';
-                }
+
+                // Motifs IANSEO : % = plusieurs caractères, _ = un caractère,
+                // * = plusieurs caractères (variante utilisée par certains modèles).
+                $regexPattern = '/^' . strtr(preg_quote($pattern, '/'), [
+                    '%'  => '.*',
+                    '_'  => '.',
+                    '\\*' => '.*',
+                ]) . '$/';
 
                 $matches = @preg_match($regexPattern, $fullCategory);
                 
