@@ -5,11 +5,27 @@
  */
 
 error_reporting(E_ALL);
-ini_set('display_errors', 1);
+ini_set('display_errors', '0');
 
 // ---------------- IANSEO root / config DB ----------------
 $ianseo_root = dirname(dirname(dirname(dirname(dirname(__FILE__)))));
+$fallback_root = dirname(dirname(dirname(dirname(__FILE__))));
 
+// ---------------- Authentification IANSEO ----------------
+$authConfig = $ianseo_root . '/config.php';
+if (!file_exists($authConfig)) {
+    $authConfig = $fallback_root . '/config.php';
+}
+if (!file_exists($authConfig)) {
+    die("Configuration IANSEO introuvable.");
+}
+require_once($authConfig);
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// ---------------- Config DB ----------------
 $config_path = $ianseo_root . '/Common/config.inc.php';
 if (!file_exists($config_path)) {
     $config_path = $ianseo_root . '/ianseo/Common/config.inc.php';
@@ -19,8 +35,12 @@ if (!file_exists($config_path)) {
 }
 
 global $CFG;
-$CFG = new stdClass();
-include_once($config_path);
+if (!isset($CFG)) {
+    $CFG = new stdClass();
+}
+if (!isset($CFG->W_HOST)) {
+    include_once($config_path);
+}
 
 if (!isset($CFG->WDB) && isset($CFG->DB_NAME)) {
     $CFG->WDB = $CFG->DB_NAME;
@@ -29,12 +49,32 @@ if (!isset($CFG->W_HOST) || !isset($CFG->W_USER) || !isset($CFG->W_PASS) || !iss
     die("Configuration DB incomplète (W_HOST/W_USER/W_PASS/WDB).");
 }
 
-session_start();
+// ---------------- Fun_Various + contrôle d'accès IANSEO ----------------
+$funCandidates = [
+    $ianseo_root . '/Common/Fun_Various.inc.php',
+    $fallback_root . '/Common/Fun_Various.inc.php',
+    '../../../../Common/Fun_Various.inc.php',
+];
+foreach ($funCandidates as $funPath) {
+    if (file_exists($funPath)) {
+        require_once($funPath);
+        break;
+    }
+}
+
+CheckTourSession(true);
+checkACL(AclParticipants, AclReadWrite);
+
+// ---------------- Jeton CSRF ----------------
+if (empty($_SESSION['selfreg_csrf'])) {
+    $_SESSION['selfreg_csrf'] = bin2hex(random_bytes(32));
+}
+$csrfToken = $_SESSION['selfreg_csrf'];
 
 // ---------------- DB ----------------
 $db = new mysqli($CFG->W_HOST, $CFG->W_USER, $CFG->W_PASS, $CFG->WDB);
 if ($db->connect_error) {
-    die("Erreur de connexion DB : " . $db->connect_error);
+    die("Erreur de connexion à la base de données.");
 }
 $db->set_charset("utf8mb4");
 
@@ -86,7 +126,10 @@ function selectTournamentInfo(mysqli $db, int $tournamentId): object {
     $sql = "SELECT " . implode(", ", $select) . " FROM Tournament WHERE ToId = ?";
 
     $stmt = $db->prepare($sql);
-    if (!$stmt) die("Erreur SQL (prepare Tournament): " . $db->error);
+    if (!$stmt) {
+        error_log('send_recap prepare Tournament: ' . $db->error);
+        die("Erreur interne.");
+    }
 
     $stmt->bind_param("i", $tournamentId);
     $stmt->execute();
@@ -222,7 +265,9 @@ function getInscriptionsByEmail(mysqli $db, int $tournament_id): array {
 
     while ($row = $result->fetch_assoc()) {
         $email = trim($row['email'] ?? '');
-        if ($email === '') continue;
+        if ($email === '' || preg_match('/[\r\n]/', $email) || filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+            continue;
+        }
 
         $code = $row['code'] ?? '';
         if ($code === '') continue;
@@ -283,7 +328,26 @@ function getInscriptionsByEmail(mysqli $db, int $tournament_id): array {
 }
 
 function sendRecapEmail(string $toEmail, array $archers, object $tournament_info, ?string $mailFrom, ?string $adminEmail, bool $includeTargets): bool {
-    $subject = "Récapitulatif de vos inscriptions - " . $tournament_info->ToName;
+    // Sécurité : adresses valides et pas de retours à la ligne dans les en-têtes.
+    $toEmail = trim($toEmail);
+    $adminEmail = ($adminEmail !== null && $adminEmail !== '') ? trim($adminEmail) : null;
+    $mailFrom = ($mailFrom !== null && $mailFrom !== '') ? trim($mailFrom) : null;
+
+    if (preg_match('/[\r\n]/', $toEmail) || filter_var($toEmail, FILTER_VALIDATE_EMAIL) === false) {
+        return false;
+    }
+    if ($adminEmail !== null && (preg_match('/[\r\n]/', $adminEmail) || filter_var($adminEmail, FILTER_VALIDATE_EMAIL) === false)) {
+        $adminEmail = null;
+    }
+    if ($mailFrom !== null && (preg_match('/[\r\n]/', $mailFrom) || filter_var($mailFrom, FILTER_VALIDATE_EMAIL) === false)) {
+        $mailFrom = null;
+    }
+
+    $subject = mb_encode_mimeheader(
+        trim(str_replace(["\r", "\n"], ' ', "Récapitulatif de vos inscriptions - " . (string)$tournament_info->ToName)),
+        'UTF-8',
+        'B'
+    );
 
     $message  = "<html><head><meta charset='UTF-8'>";
     $message .= "<style>
@@ -366,6 +430,9 @@ function sendRecapEmail(string $toEmail, array $archers, object $tournament_info
     $message = str_replace('><', ">\r\n<", $message);
 
     $fromEmail = $mailFrom ?: ($adminEmail ?: ('noreply@' . ($_SERVER['HTTP_HOST'] ?? 'localhost')));
+    if (preg_match('/[\r\n]/', $fromEmail) || filter_var($fromEmail, FILTER_VALIDATE_EMAIL) === false) {
+        $fromEmail = 'noreply@ianseo.net';
+    }
     $headers = "MIME-Version: 1.0\r\n";
     $headers .= "Content-type: text/html; charset=UTF-8\r\n";
     $headers .= "Content-Transfer-Encoding: 8bit\r\n";
@@ -376,9 +443,29 @@ function sendRecapEmail(string $toEmail, array $archers, object $tournament_info
 
 // ---------------- ACTION SEND (avec sélection) ----------------
 if ($action === 'send') {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        http_response_code(405);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['success' => false, 'error' => 'Méthode non autorisée'], JSON_UNESCAPED_UNICODE);
+        $db->close();
+        exit;
+    }
+    $sessionCsrf = (string)($_SESSION['selfreg_csrf'] ?? '');
+    if ($sessionCsrf === '' || !hash_equals($sessionCsrf, (string)($_POST['csrf'] ?? ''))) {
+        http_response_code(403);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['success' => false, 'error' => 'Jeton CSRF invalide'], JSON_UNESCAPED_UNICODE);
+        $db->close();
+        exit;
+    }
+
     $selected = $_POST['selected_emails'] ?? [];
     if (!is_array($selected)) $selected = [];
-    $selected = array_values(array_filter(array_map('trim', $selected), fn($e) => $e !== ''));
+    $selected = array_values(array_filter(array_map('trim', $selected), function ($e) {
+        return $e !== ''
+            && !preg_match('/[\r\n]/', $e)
+            && filter_var($e, FILTER_VALIDATE_EMAIL) !== false;
+    }));
 
     $includeTargets = !empty($_POST['include_targets']);
 
@@ -533,6 +620,16 @@ $inscriptions_by_email = getInscriptionsByEmail($db, $tournament_id);
 </div>
 
 <script>
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[c]));
+}
+
 function getSelectedEmails() {
   return Array.from(document.querySelectorAll('.emailCheck:checked')).map(x => x.value);
 }
@@ -578,6 +675,7 @@ function sendEmails() {
 
   const params = new URLSearchParams();
   params.set('action', 'send');
+  params.set('csrf', <?php echo json_encode($csrfToken); ?>);
   params.set('include_targets', document.getElementById('includeTargets').checked ? '1' : '0');
   emails.forEach(e => params.append('selected_emails[]', e));
 
@@ -589,6 +687,13 @@ function sendEmails() {
   .then(r => r.json())
   .then(data => {
     loading.style.display = 'none';
+
+    if (!data || data.success === false) {
+      alert((data && data.error) || 'Erreur lors de l\'envoi');
+      btn.disabled = false;
+      return;
+    }
+
     results.style.display = 'block';
 
     let html = '';
@@ -600,9 +705,10 @@ function sendEmails() {
     html += '<div class="card" style="box-shadow:none; border:1px solid #e8e9f0; margin-top:10px;">';
     html += '<strong>Détails (uniquement sélectionnés)</strong><div style="margin-top:8px;">';
     for (let email in data.details) {
-      const ok = data.details[email].includes('succès');
+      const detail = data.details[email];
+      const ok = String(detail).includes('succès');
       html += '<div class="alert ' + (ok ? 'ok' : 'err') + '" style="margin:8px 0;">';
-      html += '<strong>' + email + '</strong> : ' + data.details[email];
+      html += '<strong>' + escapeHtml(email) + '</strong> : ' + escapeHtml(detail);
       html += '</div>';
     }
     html += '</div></div>';
