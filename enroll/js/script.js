@@ -44,7 +44,7 @@ function validateToken() {
       } else {
         document.body.innerHTML =
           '<div style="text-align:center;padding:50px;font-family:Arial;">' +
-          "<h1>Accès refusé</h1><p>" + (data.error || "Token invalide") + "</p></div>";
+          "<h1>Accès refusé</h1><p>" + escapeHtml(data.error || "Token invalide") + "</p></div>";
       }
     })
     .catch(() => {
@@ -148,11 +148,22 @@ function formatProperName(name) {
   return name.toLowerCase().replace(/\b\w/g, letter => letter.toUpperCase());
 }
 
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, c => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  }[c]));
+}
+
 function postProcess(action, extraFormData) {
   const TOURNAMENTID = window.TOURNAMENTID;
   const formData = new FormData();
   formData.append("action", action);
   formData.append("tournamentid", TOURNAMENTID);
+  formData.append("token", window.ACCESSTOKEN);
   if (extraFormData) {
     for (const [k, v] of extraFormData) formData.append(k, v);
   }
@@ -443,15 +454,15 @@ function showSummary() {
       ? (" - " + registrationData.sessionChoices[sessionId].distanceLabel)
       : "";
 
-    return `<li>Départ ${sessionId} : ${divText} / ${classText} / ${tfText}${distTxt}</li>`;
+    return `<li>Départ ${escapeHtml(sessionId)} : ${escapeHtml(divText)} / ${escapeHtml(classText)} / ${escapeHtml(tfText)}${escapeHtml(distTxt)}</li>`;
   }).join("");
 
   div.innerHTML = `
-    <p><strong>Licence :</strong> ${registrationData.license}</p>
-    <p><strong>Nom :</strong> ${formatProperName(registrationData.name)}</p>
-    <p><strong>Prénom :</strong> ${formatProperName(registrationData.firstname)}</p>
-    <p><strong>Email :</strong> ${registrationData.email}</p>
-    <p><strong>Club :</strong> ${registrationData.club}</p>
+    <p><strong>Licence :</strong> ${escapeHtml(registrationData.license)}</p>
+    <p><strong>Nom :</strong> ${escapeHtml(formatProperName(registrationData.name))}</p>
+    <p><strong>Prénom :</strong> ${escapeHtml(formatProperName(registrationData.firstname))}</p>
+    <p><strong>Email :</strong> ${escapeHtml(registrationData.email)}</p>
+    <p><strong>Club :</strong> ${escapeHtml(registrationData.club)}</p>
     <p><strong>Inscriptions :</strong></p>
     <ul>${sessionsLines}</ul>
   `;
@@ -464,6 +475,7 @@ function submitRegistration() {
   const formData = new FormData();
   formData.append("action", "submitregistration");
   formData.append("tournamentid", TOURNAMENTID);
+  formData.append("token", window.ACCESSTOKEN);
   formData.append("data", JSON.stringify(registrationData));
 
   fetch("process.php", { method: "POST", body: formData })

@@ -7,16 +7,21 @@ register_shutdown_function(function () {
     $err = error_get_last();
     if ($err && in_array($err['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) {
         if (!headers_sent()) header('Content-Type: application/json; charset=utf-8');
-        echo json_encode([
+        $debug = defined('DEBUG_MODE') && DEBUG_MODE;
+        echo json_encode($debug ? [
             'success' => false,
             'error' => 'Fatal PHP: ' . $err['message'],
             'debug' => ['file'=>$err['file'], 'line'=>$err['line']]
+        ] : [
+            'success' => false,
+            'error' => 'Erreur interne du serveur'
         ], JSON_UNESCAPED_UNICODE);
     }
 });
 
 /* ===== DEBUG ===== */
-define('DEBUG_MODE', true);
+// Laisser à false en production. Passer à true uniquement pour un diagnostic local.
+define('DEBUG_MODE', false);
 function dbg($arr) { return DEBUG_MODE ? $arr : null; }
 
 /* ===== JSON helpers ===== */
@@ -33,6 +38,52 @@ function sendSuccess($data, $message = '', $debug = null) {
 function formatProperName($name) {
     $name = mb_strtolower(trim((string)$name), 'UTF-8');
     return mb_convert_case($name, MB_CASE_TITLE, 'UTF-8');
+}
+
+// Valide une adresse email et refuse les retours à la ligne (injection d'en-têtes).
+function isValidEmail(string $email): bool {
+    return $email !== ''
+        && !preg_match('/[\r\n]/', $email)
+        && filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
+}
+
+// Nettoie une valeur destinée à un en-tête mail.
+function sanitizeHeaderValue(string $value): string {
+    return trim(str_replace(["\r", "\n"], ' ', $value));
+}
+
+// Vérifie que la division, la catégorie et le blason soumis existent bien
+// dans le tournoi et sont compatibles avec le sexe et l'âge de l'archer.
+function validateEntryChoice(mysqli $conn, int $tournamentId, string $division, string $classId, int $targetface, int $sex, int $age): void {
+    $divQ = "SELECT COUNT(*) AS n FROM Divisions WHERE DivTournament = ? AND DivId = ? AND DivAthlete = 1";
+    $divStmt = mysqli_prepare($conn, $divQ);
+    bindSafe($divStmt, $divQ, 'is', [$tournamentId, $division]);
+    mysqli_stmt_execute($divStmt);
+    $divRes = mysqli_stmt_get_result($divStmt);
+    $divRow = mysqli_fetch_assoc($divRes);
+    if (intval($divRow['n'] ?? 0) === 0) throw new Exception("Division invalide");
+
+    $clsQ = "SELECT COUNT(*) AS n
+             FROM Classes c
+             WHERE c.ClTournament = ? AND c.ClId = ? AND c.ClAthlete = 1
+               AND (c.ClDivisionsAllowed = '' OR FIND_IN_SET(?, c.ClDivisionsAllowed))
+               AND c.ClSex IN (-1, ?)
+               AND ((c.ClAgeFrom <= ? AND c.ClAgeTo >= ?)
+                    OR (COALESCE(c.ClAgeFrom, 0) <= 0 AND COALESCE(c.ClAgeTo, 0) <= 0))";
+    $clsStmt = mysqli_prepare($conn, $clsQ);
+    bindSafe($clsStmt, $clsQ, 'issiii', [$tournamentId, $classId, $division, $sex, $age, $age]);
+    mysqli_stmt_execute($clsStmt);
+    $clsRes = mysqli_stmt_get_result($clsStmt);
+    $clsRow = mysqli_fetch_assoc($clsRes);
+    if (intval($clsRow['n'] ?? 0) === 0) throw new Exception("Catégorie invalide");
+
+    $tfQ = "SELECT COUNT(*) AS n FROM TargetFaces WHERE TfTournament = ? AND TfId = ?";
+    $tfStmt = mysqli_prepare($conn, $tfQ);
+    bindSafe($tfStmt, $tfQ, 'ii', [$tournamentId, $targetface]);
+    mysqli_stmt_execute($tfStmt);
+    $tfRes = mysqli_stmt_get_result($tfStmt);
+    $tfRow = mysqli_fetch_assoc($tfRes);
+    if (intval($tfRow['n'] ?? 0) === 0) throw new Exception("Blason invalide");
 }
 
 function loadConfig($tournamentId=null) {
@@ -61,6 +112,15 @@ function loadConfig($tournamentId=null) {
 
 /* ===== email (HTML + détails par départ) ===== */
 function sendRegistrationEmail(mysqli $conn, int $tournamentId, string $userEmail, string $adminEmail, array $userData, string $tournamentName, string $fromEmail = 'noreply@ianseo.net') {
+    // Sécurité : adresses valides et pas de retours à la ligne dans les en-têtes.
+    $userEmail  = trim($userEmail);
+    $adminEmail = trim($adminEmail);
+    $fromEmail  = trim($fromEmail);
+
+    if (!isValidEmail($userEmail)) return ['user' => false, 'admin' => false];
+    if ($adminEmail !== '' && !isValidEmail($adminEmail)) $adminEmail = '';
+    if (!isValidEmail($fromEmail)) $fromEmail = 'noreply@ianseo.net';
+
     $license   = htmlspecialchars($userData['license'] ?? '');
     $name      = htmlspecialchars(formatProperName($userData['name'] ?? ''));
     $firstname = htmlspecialchars(formatProperName($userData['firstname'] ?? ''));
@@ -234,7 +294,11 @@ function sendRegistrationEmail(mysqli $conn, int $tournamentId, string $userEmai
         $sessionsHtml = "<p>Aucun départ.</p>";
     }
 
-    $subjectUser = "Confirmation d'inscription - " . $tournamentName;
+    $subjectUser = mb_encode_mimeheader(
+        sanitizeHeaderValue("Confirmation d'inscription - " . $tournamentName),
+        'UTF-8',
+        'B'
+    );
 
     $messageUser = "
     <html>
@@ -283,7 +347,11 @@ function sendRegistrationEmail(mysqli $conn, int $tournamentId, string $userEmai
 
     $sentUser = mail($userEmail, $subjectUser, $messageUser, $headersUser);
 
-    $subjectAdmin = "Nouvelle inscription - " . $tournamentName;
+    $subjectAdmin = mb_encode_mimeheader(
+        sanitizeHeaderValue("Nouvelle inscription - " . $tournamentName),
+        'UTF-8',
+        'B'
+    );
 
     $messageAdmin = "
     <html>
@@ -387,6 +455,22 @@ function tdSpecificityScore($pattern) {
 $action = $_POST['action'] ?? '';
 $tournamentId = isset($_POST['tournamentid']) ? intval($_POST['tournamentid']) : 0;
 
+/* ===== Contrôle d'accès =====
+   Le token du tournoi est obligatoire pour toutes les actions, sauf
+   validatetoken (qui sert précisément à le vérifier). */
+if ($action !== 'validatetoken') {
+    $requestToken = trim((string)($_POST['token'] ?? ''));
+    $accessCfg = loadConfig($tournamentId);
+
+    if (!$accessCfg || empty($accessCfg['tournament'])) {
+        sendError("Accès non autorisé");
+    }
+    $configuredToken = (string)$accessCfg['tournament']['token'];
+    if ($configuredToken === '' || !hash_equals($configuredToken, $requestToken)) {
+        sendError("Token invalide pour ce tournoi");
+    }
+}
+
 /* ===== validatetoken ===== */
 if ($action === 'validatetoken') {
     $token = trim($_POST['token'] ?? '');
@@ -395,7 +479,10 @@ if ($action === 'validatetoken') {
 
     $cfg = loadConfig($tournamentId);
     if (!$cfg || empty($cfg['tournament'])) sendError("Aucune configuration trouvée pour ce tournoi");
-    if (($cfg['tournament']['token'] ?? '') !== $token) sendError("Token invalide pour ce tournoi");
+    $configuredToken = (string)($cfg['tournament']['token'] ?? '');
+    if ($configuredToken === '' || !hash_equals($configuredToken, $token)) {
+        sendError("Token invalide pour ce tournoi");
+    }
 
     $q = "SELECT ToId, ToName FROM Tournament WHERE ToId = ?";
     $stmt = mysqli_prepare($conn, $q);
@@ -767,9 +854,41 @@ if ($action === 'submitregistration') {
     $license = (string)($data['license'] ?? '');
     if ($license === '') sendError("Licence manquante");
 
+    // Validation serveur de l'email (le contrôle JS n'est pas une garantie).
+    $email = trim((string)($data['email'] ?? ''));
+    if (!isValidEmail($email)) sendError("Adresse email invalide");
+    $data['email'] = $email;
+
+    $lastname = trim((string)($data['name'] ?? ''));
+    if ($lastname === '') sendError("Nom de famille manquant");
+
     mysqli_begin_transaction($conn);
 
     try {
+        // On ne fait pas confiance aux données d'identité envoyées par le
+        // client : on les recharge depuis LookUpEntries.
+        $archerQuery = "SELECT LueCode, LueName, LueFamilyName, LueSex, LueCtrlCode, LueIocCode, LueCoDescr, LueClassified, LueCountry
+                        FROM LookUpEntries
+                        WHERE LueCode = ? AND UPPER(TRIM(LueFamilyName)) = UPPER(?)
+                        LIMIT 1";
+        $archerStmt = mysqli_prepare($conn, $archerQuery);
+        bindSafe($archerStmt, $archerQuery, 'ss', [$license, $lastname]);
+        mysqli_stmt_execute($archerStmt);
+        $archerRes = mysqli_stmt_get_result($archerStmt);
+        $archer = mysqli_fetch_assoc($archerRes);
+        if (!$archer) throw new Exception("Licence ou nom invalide");
+
+        $data['license']     = (string)$archer['LueCode'];
+        $data['name']        = (string)$archer['LueFamilyName'];
+        $data['firstname']   = (string)$archer['LueName'];
+        $data['sex']         = intval($archer['LueSex']);
+        $data['dob']         = (string)$archer['LueCtrlCode'];
+        $data['ioccode']     = (string)$archer['LueIocCode'];
+        $data['club']        = (string)$archer['LueCoDescr'];
+        $data['countrycode'] = (string)$archer['LueCountry'];
+        $data['classified']  = intval($archer['LueClassified']);
+        $license             = (string)$archer['LueCode'];
+
         $qDupe = "SELECT COUNT(*) as count FROM Entries WHERE EnTournament = ? AND EnCode = ?";
         $sDupe = mysqli_prepare($conn, $qDupe);
         bindSafe($sDupe, $qDupe, 'is', [$tournamentId, $license]);
@@ -802,8 +921,39 @@ if ($action === 'submitregistration') {
         }
 
         $insertedIds = [];
-        $sessions = $data['sessions'];
+
+        // Année de référence et âge (même règle que getclasses).
+        $tourQ = "SELECT YEAR(ToWhenTo) AS yearEnd, YEAR(ToWhenFrom) AS yearStart FROM Tournament WHERE ToId = ?";
+        $tourStmt = mysqli_prepare($conn, $tourQ);
+        bindSafe($tourStmt, $tourQ, 'i', [$tournamentId]);
+        mysqli_stmt_execute($tourStmt);
+        $tourRes = mysqli_stmt_get_result($tourStmt);
+        $tourRow = mysqli_fetch_assoc($tourRes);
+        $refYear = intval($tourRow['yearEnd'] ?? 0);
+        if ($refYear <= 0) $refYear = intval($tourRow['yearStart'] ?? 0);
+        if ($refYear <= 0) $refYear = intval(date('Y'));
+
+        $birthYear = intval(substr((string)($data['dob'] ?? ''), 0, 4));
+        if ($birthYear <= 0) throw new Exception("Date de naissance invalide");
+        $age = $refYear - $birthYear;
+        $sex = intval($data['sex'] ?? 0);
+
+        // Vérifie que les départs demandés existent pour ce tournoi.
+        $validSessions = [];
+        $sessQ = "SELECT DISTINCT DiSession FROM DistanceInformation WHERE DiTournament = ?";
+        $sessStmt = mysqli_prepare($conn, $sessQ);
+        bindSafe($sessStmt, $sessQ, 'i', [$tournamentId]);
+        mysqli_stmt_execute($sessStmt);
+        $sessRes = mysqli_stmt_get_result($sessStmt);
+        while ($r = mysqli_fetch_assoc($sessRes)) $validSessions[] = intval($r['DiSession']);
+
+        $sessions = array_values(array_unique(array_map('intval', $data['sessions'])));
         sort($sessions);
+        foreach ($sessions as $validSession) {
+            if (!in_array($validSession, $validSessions, true)) {
+                throw new Exception("Départ invalide");
+            }
+        }
 
         foreach ($sessions as $session) {
             $session = intval($session);
@@ -815,6 +965,9 @@ if ($action === 'submitregistration') {
             $ageclass = (string)($choice['ageclass'] ?? '');
             $targetface = intval($choice['targetface'] ?? 0);
             if ($division === '' || $ageclass === '' || $targetface <= 0) throw new Exception("Choix incomplets pour le départ $session");
+
+            // Vérifie que le choix est bien autorisé pour ce tournoi.
+            validateEntryChoice($conn, $tournamentId, $division, $ageclass, $targetface, $sex, $age);
 
             $formattedName = formatProperName($data['name'] ?? '');
             $formattedFirstname = formatProperName($data['firstname'] ?? '');
@@ -922,9 +1075,10 @@ if ($action === 'submitregistration') {
         }
 
         sendSuccess(['entryids'=>$insertedIds, 'emails_sent'=>$emails], "Inscription réussie !");
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         mysqli_rollback($conn);
-        sendError("Erreur inscription: " . $e->getMessage());
+        // Le détail n'est renvoyé qu'en mode debug.
+        sendError("Erreur lors de l'inscription", ['detail' => $e->getMessage()]);
     }
 }
 
