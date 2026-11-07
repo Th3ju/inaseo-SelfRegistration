@@ -360,9 +360,15 @@ function sendRecapEmail(string $toEmail, array $archers, object $tournament_info
     $message .= "</div>";
     $message .= "</body></html>";
 
+    // Le corps est construit sur une seule ligne ; au-delà de 998 octets
+    // (limite RFC 5322), certains serveurs mail replient la ligne au milieu
+    // d'une balise, ce qui casse le rendu HTML de façon intermittente.
+    $message = str_replace('><', ">\r\n<", $message);
+
     $fromEmail = $mailFrom ?: ($adminEmail ?: ('noreply@' . ($_SERVER['HTTP_HOST'] ?? 'localhost')));
     $headers = "MIME-Version: 1.0\r\n";
     $headers .= "Content-type: text/html; charset=UTF-8\r\n";
+    $headers .= "Content-Transfer-Encoding: 8bit\r\n";
     $headers .= "From: " . $fromEmail . "\r\n";
 
     return mail($toEmail, $subject, $message, $headers);
