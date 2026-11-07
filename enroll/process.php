@@ -605,7 +605,16 @@ if ($action === 'getclasses') {
 
 /* ===== getsessions ===== */
 if ($action === 'getsessions') {
-    $q = "SELECT DISTINCT DiSession FROM DistanceInformation WHERE DiTournament = ? ORDER BY DiSession";
+    // Le nom de la session est dans `Session`.`SesName` (jointure sur SesOrder = DiSession).
+    $q = "SELECT di.DiSession, MAX(s.SesName) AS SesName
+          FROM DistanceInformation di
+          LEFT JOIN `Session` s
+            ON s.SesTournament = di.DiTournament
+           AND s.SesOrder = di.DiSession
+           AND s.SesType = di.DiType
+          WHERE di.DiTournament = ?
+          GROUP BY di.DiSession
+          ORDER BY di.DiSession";
     $stmt = mysqli_prepare($conn, $q);
     bindSafe($stmt, $q, 'i', [$tournamentId]);
     mysqli_stmt_execute($stmt);
@@ -616,7 +625,11 @@ if ($action === 'getsessions') {
     $out = [];
     while ($row = mysqli_fetch_assoc($res)) {
         $sessionNum = intval($row['DiSession']);
-        $label = "Départ $sessionNum";
+        $sessionName = trim((string)($row['SesName'] ?? ''));
+
+        // Nom de session s'il existe, sinon libellé générique.
+        $prefix = $sessionName !== '' ? $sessionName : "Départ $sessionNum";
+        $label = $prefix;
 
         $dQ = "SELECT DiDay, DiStart FROM DistanceInformation WHERE DiTournament = ? AND DiSession = ? AND DiDistance = 1 LIMIT 1";
         $dS = mysqli_prepare($conn, $dQ);
@@ -625,14 +638,17 @@ if ($action === 'getsessions') {
         $dR = mysqli_stmt_get_result($dS);
 
         if ($d = mysqli_fetch_assoc($dR)) {
-            $dateFr = $d['DiDay'];
-            $parts = explode('-', $d['DiDay']);
-            if (count($parts) === 3) {
-                $dateFr = intval($parts[2]).' '.($months[$parts[1]] ?? $parts[1]).' '.$parts[0];
+            $day = trim((string)($d['DiDay'] ?? ''));
+            if ($day !== '' && $day !== '0000-00-00' && $day !== '0000-00-00 00:00:00') {
+                $dateFr = $day;
+                $parts = explode('-', $day);
+                if (count($parts) === 3) {
+                    $dateFr = intval($parts[2]).' '.($months[$parts[1]] ?? $parts[1]).' '.$parts[0];
+                }
+                $tparts = explode(':', (string)$d['DiStart']);
+                $heureFr = (count($tparts) >= 2) ? ($tparts[0].':'.$tparts[1]) : $d['DiStart'];
+                $label = "$prefix - $dateFr $heureFr";
             }
-            $tparts = explode(':', (string)$d['DiStart']);
-            $heureFr = (count($tparts) >= 2) ? ($tparts[0].':'.$tparts[1]) : $d['DiStart'];
-            $label = "Départ $sessionNum - $dateFr $heureFr";
         }
 
         $out[] = ['session'=>$sessionNum,'label'=>$label];
