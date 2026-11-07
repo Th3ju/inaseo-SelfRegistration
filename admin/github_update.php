@@ -6,6 +6,64 @@
  * Emplacement : /Modules/Custom/SelfRegistration/admin/github_update.php
  */
 
+error_reporting(E_ALL);
+ini_set('display_errors', '0');
+
+// ---------------- Authentification IANSEO ----------------
+$ianseo_root = dirname(dirname(dirname(dirname(dirname(__FILE__)))));
+$fallback_root = dirname(dirname(dirname(dirname(__FILE__))));
+
+$authConfig = $ianseo_root . '/config.php';
+if (!file_exists($authConfig)) {
+    $authConfig = $fallback_root . '/config.php';
+}
+if (!file_exists($authConfig)) {
+    die("Configuration IANSEO introuvable.");
+}
+require_once($authConfig);
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+global $CFG;
+if (!isset($CFG)) {
+    $CFG = new stdClass();
+}
+if (!isset($CFG->W_HOST)) {
+    $configPath = $ianseo_root . '/Common/config.inc.php';
+    if (!file_exists($configPath)) {
+        $configPath = $ianseo_root . '/ianseo/Common/config.inc.php';
+    }
+    if (file_exists($configPath)) {
+        include_once($configPath);
+    }
+}
+if (!isset($CFG->WDB) && isset($CFG->DB_NAME)) {
+    $CFG->WDB = $CFG->DB_NAME;
+}
+
+$funCandidates = [
+    $ianseo_root . '/Common/Fun_Various.inc.php',
+    $fallback_root . '/Common/Fun_Various.inc.php',
+    '../../../../Common/Fun_Various.inc.php',
+];
+foreach ($funCandidates as $funPath) {
+    if (file_exists($funPath)) {
+        require_once($funPath);
+        break;
+    }
+}
+
+CheckTourSession(true);
+checkACL(AclParticipants, AclReadWrite);
+
+// Jeton CSRF : l'action de mise à jour n'est acceptée qu'en POST.
+if (empty($_SESSION['selfreg_csrf'])) {
+    $_SESSION['selfreg_csrf'] = bin2hex(random_bytes(32));
+}
+$csrfToken = $_SESSION['selfreg_csrf'];
+
 // Fonction pour afficher des messages
 function logMsg($msg, $type = 'info') {
     $colors = [
@@ -95,10 +153,22 @@ function logMsg($msg, $type = 'info') {
 // Ce script est dans admin/, donc on remonte d'un niveau
 $moduleDir = realpath(dirname(__DIR__));
 
-// Vérifier si l'action est confirmée
-if (!isset($_GET['confirm'])) {
+// Vérifier si l'action est confirmée : POST + jeton CSRF obligatoires.
+$sessionCsrf = (string)($_SESSION['selfreg_csrf'] ?? '');
+$isConfirmed = ($_SERVER['REQUEST_METHOD'] === 'POST')
+    && isset($_POST['confirm'])
+    && $sessionCsrf !== ''
+    && hash_equals($sessionCsrf, (string)($_POST['csrf'] ?? ''));
+
+if (!$isConfirmed) {
     ?>
     <h1>🔄 Mise à jour du module SelfRegistration</h1>
+
+    <?php if ($_SERVER['REQUEST_METHOD'] === 'POST'): ?>
+        <div class="warning-box">
+            Jeton de sécurité invalide. Rechargez la page et réessayez.
+        </div>
+    <?php endif; ?>
 
     <div class="info-box">
         <strong>📦 Source GitHub :</strong> <code>https://github.com/Th3ju/inaseo-SelfRegistration</code><br>
@@ -133,10 +203,12 @@ if (!isset($_GET['confirm'])) {
         <li><code>README.md</code> - Documentation</li>       
     </ul>
 
-    <div style="margin-top: 30px; text-align: center;">
-        <a href="?confirm=1" class="btn">🚀 Lancer la mise à jour</a>
+    <form method="POST" style="margin-top: 30px; text-align: center;">
+        <input type="hidden" name="confirm" value="1">
+        <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrfToken); ?>">
+        <button type="submit" class="btn">🚀 Lancer la mise à jour</button>
         <a href="selfregistration.php" class="btn btn-secondary">❌ Annuler</a>
-    </div>
+    </form>
     <?php
     exit;
 }
@@ -188,8 +260,8 @@ if (function_exists('curl_init')) {
     curl_setopt($ch, CURLOPT_URL, $zipUrl);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
     curl_setopt($ch, CURLOPT_TIMEOUT, 60);
     curl_setopt($ch, CURLOPT_USERAGENT, 'IANSEO-SelfRegistration-Updater');
 
@@ -210,8 +282,8 @@ if ($zipContent === false && ini_get('allow_url_fopen')) {
     logMsg("Essai avec file_get_contents...", 'warning');
     $context = stream_context_create([
         'ssl' => [
-            'verify_peer' => false,
-            'verify_peer_name' => false,
+            'verify_peer' => true,
+            'verify_peer_name' => true,
         ],
         'http' => [
             'timeout' => 60
@@ -251,6 +323,19 @@ if ($zip->open($tempZip) !== TRUE) {
     logMsg("❌ Erreur lors de l'ouverture du ZIP", 'error');
     @unlink($tempZip);
     exit;
+}
+
+// Anti zip-slip : refuse les chemins absolus et les remontées de répertoire.
+for ($i = 0; $i < $zip->numFiles; $i++) {
+    $entry = str_replace('\\', '/', (string)$zip->getNameIndex($i));
+    if ($entry === ''
+        || strpos($entry, "\0") !== false
+        || preg_match('#(^/|^[A-Za-z]:|(^|/)\.\.(/|$))#', $entry)) {
+        logMsg("❌ Entrée ZIP invalide : " . $entry, 'error');
+        $zip->close();
+        @unlink($tempZip);
+        exit;
+    }
 }
 
 $tempDir = sys_get_temp_dir() . '/' . 'selfregistration_' . time();
@@ -293,8 +378,8 @@ $count = 0;
 $errorCount = 0;
 $skippedCount = 0;
 
-// Fichiers à ne PAS remplacer s'ils existent déjà
-$protectedFiles = ['enroll/config.php'];
+// Fichiers à ne PAS remplacer s'ils existent déjà (chemins relatifs au module)
+$protectedFiles = ['/enroll/config.php'];
 
 $iterator = new RecursiveIteratorIterator(
     new RecursiveDirectoryIterator($sourceDir, RecursiveDirectoryIterator::SKIP_DOTS),
@@ -306,17 +391,23 @@ foreach ($iterator as $item) {
         // Calculer le chemin relatif depuis le dossier source
         $relativePath = substr($item->getPathname(), strlen($sourceDir));
 
-        // Normaliser les séparateurs (Windows)
+        // Normaliser les séparateurs et le chemin relatif
         $relativePath = str_replace('\\', '/', $relativePath);
+        $relativePath = '/' . ltrim($relativePath, '/');
+
+        // Refuser toute remontée de répertoire (défense en profondeur)
+        if (strpos($relativePath, '..') !== false) {
+            logMsg("❌ Chemin invalide ignoré : " . $relativePath, 'error');
+            $errorCount++;
+            continue;
+        }
 
         // Construire le chemin de destination dans $moduleDir
-
         $destPath = $moduleDir . $relativePath;
-        $filename = basename($destPath);
 
         // Vérifier si c'est un fichier protégé qui existe déjà
-        if (in_array($filename, $protectedFiles) && file_exists($destPath)) {
-            logMsg("🔒 Fichier protégé conservé : " . $filename, 'info');
+        if (in_array($relativePath, $protectedFiles, true) && file_exists($destPath)) {
+            logMsg("🔒 Fichier protégé conservé : " . $relativePath, 'info');
             $skippedCount++;
             continue;
         }
