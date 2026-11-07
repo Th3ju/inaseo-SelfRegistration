@@ -65,20 +65,17 @@ $config_path = $ianseo_root . '/Common/config.inc.php';
 
 ## Mode Debug
 
-Le mode debug est **ACTIVÉ par défaut** pour faciliter les tests.
+Le mode debug est **DÉSACTIVÉ par défaut** (recommandé en production).
 
-### Informations affichées en mode debug :
-- Chemins de configuration détectés
-- Requêtes SQL exécutées
-- Données transmises entre client/serveur
-- Traces d'erreur complètes
+### Activer temporairement (diagnostic local)
 
-### Désactiver en production
-
-Dans `index.php` et `process.php`, changez :
+Dans `enroll/process.php`, changez :
 ```php
-define('DEBUG_MODE', false);
+define('DEBUG_MODE', true);
 ```
+
+Ne pas laisser activé en production : les réponses JSON contiendraient des
+détails internes (requêtes, chemins, messages d'erreur).
 
 ## Utilisation
 
