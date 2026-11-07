@@ -25,6 +25,12 @@ checkACL(AclParticipants, AclReadWrite);
 
 $TourId = $_SESSION['TourId'];
 
+// Jeton CSRF pour les formulaires d'administration.
+if (empty($_SESSION['selfreg_csrf'])) {
+    $_SESSION['selfreg_csrf'] = bin2hex(random_bytes(32));
+}
+$csrfToken = $_SESSION['selfreg_csrf'];
+
 $PAGE_TITLE = 'Auto-inscription - Configuration';
 $IncludeJquery = true;
 
@@ -97,13 +103,20 @@ $message = '';
 $messageType = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action = $_POST['action'] ?? '';
+    $sessionCsrf = (string)($_SESSION['selfreg_csrf'] ?? '');
+    if ($sessionCsrf === '' || !hash_equals($sessionCsrf, (string)($_POST['csrf'] ?? ''))) {
+        $message = 'Jeton de sécurité invalide. Rechargez la page.';
+        $messageType = 'error';
+        $action = '';
+    } else {
+        $action = $_POST['action'] ?? '';
+    }
 
     if ($action === 'add' || $action === 'edit') {
-        $id = trim($_POST['id'] ?? '');
-        $name = trim($_POST['name'] ?? '');
-        $token = trim($_POST['token'] ?? '');
-        $adminEmail = trim($_POST['admin_email'] ?? '');
+        $id = is_string($_POST['id'] ?? null) ? trim($_POST['id']) : '';
+        $name = is_string($_POST['name'] ?? null) ? trim($_POST['name']) : '';
+        $token = is_string($_POST['token'] ?? null) ? trim($_POST['token']) : '';
+        $adminEmail = is_string($_POST['admin_email'] ?? null) ? trim($_POST['admin_email']) : '';
 
         if (empty($id) || empty($name) || empty($token)) {
             $message = 'Les champs ID, Nom et Token sont obligatoires.';
@@ -130,7 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     } elseif ($action === 'delete') {
-        $id = $_POST['id'] ?? '';
+        $id = is_string($_POST['id'] ?? null) ? $_POST['id'] : '';
 
         if (isset($competitions[$id])) {
             unset($competitions[$id]);
@@ -143,7 +156,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     } elseif ($action === 'update_mailfrom') {
-        $newMailFrom = trim($_POST['mail_from'] ?? '');
+        $newMailFrom = is_string($_POST['mail_from'] ?? null) ? trim($_POST['mail_from']) : '';
 
         if (empty($newMailFrom) || !filter_var($newMailFrom, FILTER_VALIDATE_EMAIL)) {
             $message = 'L\'adresse email d\'expédition n\'est pas valide.';
@@ -194,7 +207,7 @@ function saveConfig($file, $competitions, $mailfrom) {
     return file_put_contents($file, $content) !== false;
 }
 
-$editId = $_GET['edit'] ?? '';
+$editId = is_string($_GET['edit'] ?? null) ? $_GET['edit'] : '';
 $editComp = $editId && isset($competitions[$editId]) ? $competitions[$editId] : null;
 $defaultToken = $editComp ? $editComp['token'] : generateToken();
 
@@ -472,9 +485,11 @@ chdir($originalDir);
 <script>
 function generateNewToken() {
     const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const values = new Uint32Array(20);
+    crypto.getRandomValues(values);
     let token = '';
-    for (let i = 0; i < 20; i++) {
-        token += chars.charAt(Math.floor(Math.random() * chars.length));
+    for (let i = 0; i < values.length; i++) {
+        token += chars.charAt(values[i] % chars.length);
     }
     document.getElementById('token').value = token;
 }
@@ -509,6 +524,7 @@ function updateTournamentName() {
         <h2>Configuration globale</h2>
         <form method="POST" action="">
             <input type="hidden" name="action" value="update_mailfrom">
+            <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrfToken); ?>">
             <div class="form-group">
                 <label for="mailfrom">Email d'expédition (From)</label>
                 <input type="email" id="mailfrom" name="mail_from" class="form-control"
@@ -528,6 +544,7 @@ function updateTournamentName() {
     <?php else: ?>
         <form method="POST" action="">
             <input type="hidden" name="action" value="<?php echo $editComp ? 'edit' : 'add'; ?>">
+            <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrfToken); ?>">
 
             <div class="form-group">
                 <label for="id">Tournoi IANSEO</label>
@@ -630,6 +647,7 @@ function updateTournamentName() {
                         <a href="?edit=<?php echo urlencode($id); ?>" class="btn btn-warning">Modifier</a>
                         <form method="POST" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette compétition ?')">
                             <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrfToken); ?>">
                             <input type="hidden" name="id" value="<?php echo htmlspecialchars($id); ?>">
                             <button type="submit" class="btn btn-danger">Supprimer</button>
                         </form>
